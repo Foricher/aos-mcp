@@ -1,0 +1,18 @@
+[project]
+name = "aos_mcp"
+version = "0.1.0"
+description = "AlE aos mcp server"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "mcp[cli]>=1.12.4",
+    "pyyaml>=6.0.2",
+    "requests>=2.32.4",
+]
+
+[project.scripts]
+aos_mcp = "aos_mcp:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

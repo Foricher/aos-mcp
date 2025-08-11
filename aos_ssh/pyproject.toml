@@ -1,0 +1,26 @@
+[project]
+name = "aos_ssh"
+version = "0.1.0"
+description = "ALE AOS ssh server"
+readme = "README.md"
+authors = [
+    { name = "foricher", email = "christian.foricher@al-enterprise.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.116.1",
+    "paramiko>=4.0.0",
+    "pydantic>=2.11.7",
+    "uvicorn[standard]>=0.35.0",
+]
+
+dev-dependencies = [
+    "hatchling"
+]
+
+[project.scripts]
+aos_ssh = "aos_ssh:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

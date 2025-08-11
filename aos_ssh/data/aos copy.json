@@ -1,0 +1,32 @@
+[ 
+    { 
+      "serial_number" : "JSZ222003001",
+      "ip_address": "172.25.190.13",
+      "user": "admin", 
+      "password": "switch"
+    },
+    { 
+      "serial_number" : "JSZ212203056",
+      "ip_address": "172.25.190.14",
+      "user": "admin", 
+      "password": "switch"
+    },
+    { 
+      "serial_number" : "WHS225101349",
+      "ip_address": "172.25.190.15",
+      "user": "admin", 
+      "password": "switch"
+    },
+    { 
+      "serial_number" : "Y2182493",
+      "ip_address": "172.25.190.16",
+      "user": "admin", 
+      "password": "switch"
+    },
+    { 
+      "serial_number" : "Y2383224",
+      "ip_address": "172.25.190.17",
+      "user": "admin", 
+      "password": "switch"
+    }
+]

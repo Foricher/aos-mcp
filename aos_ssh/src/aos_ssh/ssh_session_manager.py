@@ -14,7 +14,7 @@ session_lock = threading.Lock()
 # Define the inactivity timeout duration in seconds (5 minutes)
 INACTIVITY_TIMEOUT = 5 * 60
 
-def create_ssh_session(ip_address, username, password=None, key_filename=None, port=22):
+def create_ssh_session(host, username, password=None, key_filename=None, port=22):
     """
     Creates and returns an SSH client session for the given host.
     Handles both password-based and key-based authentication.
@@ -25,32 +25,33 @@ def create_ssh_session(ip_address, username, password=None, key_filename=None, p
     
     try:
         if password:
-            client.connect(hostname=ip_address, port=port, username=username, password=password, timeout=10)
+            client.connect(hostname=host, port=port, username=username, password=password, timeout=10)
         elif key_filename:
-            client.connect(hostname=ip_address, port=port, username=username, key_filename=key_filename, timeout=10)
+            client.connect(hostname=host, port=port, username=username, key_filename=key_filename, timeout=10)
         else:
-            return None, f"No password or key_filename provided for {ip_address}"
+            return None, f"No password or key_filename provided for {host}"
         transport = client.get_transport()
         transport.set_keepalive(60)
-        print(f"Successfully connected to {ip_address}")
+        print(f"Successfully connected to {host}")
         return client, None
     except paramiko.AuthenticationException:
-        return None, f"Authentication failed for {username}@{ip_address}"
+        return None, f"Authentication failed for {username}@{host}"
     except paramiko.SSHException as e:
-        return None, f"SSH error connecting to {ip_address}: {e}"
+        return None, f"SSH error connecting to {host}: {e}"
     except socket.error as e:
-        return None, f"Network error connecting to {ip_address}: {e}"
+        return None, f"Network error connecting to {host}: {e}"
     except Exception as e:
         return None, f"An unexpected error occurred: {e}"
     return None, "Unknown error"
 
-def get_or_create_session(ip_address, username, password=None, key_filename=None, port=22):
+def get_or_create_session(host, username, password=None, key_filename=None, port=22):
     """
     Retrieves an existing active session or creates a new one if it doesn't exist or is closed.
     Updates the last_activity_time for the session.
     """
+    print(f"Checking session for {host} {username} , port {port}")
     with session_lock:
-        session_info = active_ssh_sessions.get(ip_address)
+        session_info = active_ssh_sessions.get(host)
         client = session_info['client'] if session_info else None
         
         # Check if the existing client is still active
@@ -58,49 +59,49 @@ def get_or_create_session(ip_address, username, password=None, key_filename=None
             try:
                 transport = client.get_transport()
                 if transport and transport.is_active() and transport.send_ignore():
-                    print(f"Using existing active session for {ip_address}")
+                    print(f"Using existing active session for {host}")
                     # Update activity time since session is being accessed
-                    active_ssh_sessions[ip_address]['last_activity_time'] = datetime.datetime.now()
+                    active_ssh_sessions[host]['last_activity_time'] = datetime.datetime.now()
                     return client, None
                 else:
-                    print(f"Session for {ip_address} found but is not active. Reconnecting...")
+                    print(f"Session for {host} found but is not active. Reconnecting...")
                     client.close() # Ensure old transport is closed
-                    client, error_msg = create_ssh_session(ip_address, username, password, key_filename, port)
+                    client, error_msg = create_ssh_session(host, username, password, key_filename, port)
                     if client:
-                        active_ssh_sessions[ip_address] = {'client': client, 'last_activity_time': datetime.datetime.now()}
+                        active_ssh_sessions[host] = {'client': client, 'last_activity_time': datetime.datetime.now()}
                     return client, error_msg
             except EOFError:
-                print(f"Session for {ip_address} unexpectedly closed. Reconnecting...")
+                print(f"Session for {host} unexpectedly closed. Reconnecting...")
                 client.close()
-                client, error_msg = create_ssh_session(ip_address, username, password, key_filename, port)
+                client, error_msg = create_ssh_session(host, username, password, key_filename, port)
                 if client:
-                    active_ssh_sessions[ip_address] = {'client': client, 'last_activity_time': datetime.datetime.now()}
+                    active_ssh_sessions[host] = {'client': client, 'last_activity_time': datetime.datetime.now()}
                 return client, error_msg
             except Exception as e:
-                print(f"Error checking session for {ip_address}: {e}. Reconnecting...")
+                print(f"Error checking session for {host}: {e}. Reconnecting...")
                 if client:
                     client.close()
-                client, error_msg = create_ssh_session(ip_address, username, password, key_filename, port)
+                client, error_msg = create_ssh_session(host, username, password, key_filename, port)
                 if client:
-                    active_ssh_sessions[ip_address] = {'client': client, 'last_activity_time': datetime.datetime.now()}
-                return client, error_msg
+                    active_ssh_sessions[host] = {'client': client, 'last_activity_time': datetime.datetime.now()}
+                return client, host
         else:
-            print(f"No existing session for {ip_address}. Creating a new one...")
-            client, error_msg = create_ssh_session(ip_address, username, password, key_filename, port)
+            print(f"No existing session for {host}. Creating a new one...")
+            client, error_msg = create_ssh_session(host, username, password, key_filename, port)
             if client:
-                active_ssh_sessions[ip_address] = {'client': client, 'last_activity_time': datetime.datetime.now()}
+                active_ssh_sessions[host] = {'client': client, 'last_activity_time': datetime.datetime.now()}
             return client, error_msg
 
-def execute_command(ip_address, command):
+def execute_command(host, command):
     """
     Executes a command on the specified SSH session.
     Assumes the session is already managed by get_or_create_session.
     Updates the last_activity_time for the session.
     """
     with session_lock:
-        session_info = active_ssh_sessions.get(ip_address)
+        session_info = active_ssh_sessions.get(host)
         if not session_info:
-            print(f"No active session for {ip_address}. Please establish a connection first.")
+            print(f"No active session for {host}. Please establish a connection first.")
             return None, None, None
 
         client = session_info['client']
@@ -110,41 +111,41 @@ def execute_command(ip_address, command):
             error = stderr.read().decode().strip()
             
             # Update activity time after successful command execution
-            active_ssh_sessions[ip_address]['last_activity_time'] = datetime.datetime.now()
+            active_ssh_sessions[host]['last_activity_time'] = datetime.datetime.now()
             
             return stdin, output, error
         except paramiko.SSHException as e:
-            print(f"Error executing command on {ip_address}: {e}")
+            print(f"Error executing command on {host}: {e}")
             return None, None, str(e)
         except Exception as e:
             print(f"An unexpected error occurred while executing command: {e}")
             return None, None, str(e)
 
-def close_session(ip_address):
+def close_session(host):
     """Closes a specific SSH session and removes it from the map."""
     with session_lock:
-        session_info = active_ssh_sessions.get(ip_address)
+        session_info = active_ssh_sessions.get(host)
         if session_info:
             client = session_info['client']
             try:
                 if client:
                     client.close()
-                    print(f"Closed session for {ip_address} due to inactivity or explicit call.")
+                    print(f"Closed session for {host} due to inactivity or explicit call.")
             except Exception as e:
-                print(f"Error closing session for {ip_address}: {e}")
+                print(f"Error closing session for {host}: {e}")
             finally:
-                if ip_address in active_ssh_sessions:
-                    del active_ssh_sessions[ip_address]
+                if host in active_ssh_sessions:
+                    del active_ssh_sessions[host]
 
 def close_all_sessions():
     """Closes all active SSH sessions."""
     with session_lock:
         # Create a list of IPs to avoid RuntimeError due to dictionary size change during iteration
-        ips_to_close = list(active_ssh_sessions.keys()) 
-        for ip in ips_to_close:
-            close_session(ip)
+        hosts_to_close = list(active_ssh_sessions.keys()) 
+        for host in hosts_to_close:
+            close_session(host)
 
-def session_monitor_thread(ip_address, username, password=None, key_filename=None, port=22, interval=60):
+def session_monitor_thread(host, username, password=None, key_filename=None, port=22, interval=60):
     """
     A separate thread to monitor and keep a specific SSH session alive.
     It will attempt to reconnect if the session goes down.
@@ -153,17 +154,17 @@ def session_monitor_thread(ip_address, username, password=None, key_filename=Non
     while True:
         try:
             # Call get_or_create_session to ensure the session is active and update activity time
-            client = get_or_create_session(ip_address, username, password, key_filename, port)
+            client = get_or_create_session(host, username, password, key_filename, port)
             if client:
                 # Optionally, send a lightweight command to keep the session truly alive
                 # This helps detect if the connection broke without explicit closure
                 _stdin, _stdout, _stderr = client.exec_command("echo KeepAlive", timeout=5)
                 _stdout.read() # Read to consume output and complete command
             else:
-                print(f"Monitor: Failed to get/create session for {ip_address}. Retrying...")
+                print(f"Monitor: Failed to get/create session for {host}. Retrying...")
             
         except Exception as e:
-            print(f"Monitor thread error for {ip_address}: {e}. Attempting reconnect on next cycle.")
+            print(f"Monitor thread error for {host}: {e}. Attempting reconnect on next cycle.")
         
         time.sleep(interval)
 
@@ -173,17 +174,17 @@ def inactivity_cleanup_thread(interval=30):
     """
     while True:
         current_time = datetime.datetime.now()
-        ips_to_close = []
+        hosts_to_close = []
         
         with session_lock:
-            for ip_address, session_info in active_ssh_sessions.items():
+            for host, session_info in active_ssh_sessions.items():
                 last_activity = session_info['last_activity_time']
                 if (current_time - last_activity).total_seconds() > INACTIVITY_TIMEOUT:
-                    ips_to_close.append(ip_address)
+                    hosts_to_close.append(host)
         
-        for ip in ips_to_close:
-            print(f"Session for {ip} has been inactive for more than {INACTIVITY_TIMEOUT} seconds. Closing...")
-            close_session(ip) # Use the single session closer
+        for host in hosts_to_close:
+            print(f"Session for {host} has been inactive for more than {INACTIVITY_TIMEOUT} seconds. Closing...")
+            close_session(host) # Use the single session closer
         
         time.sleep(interval)
 

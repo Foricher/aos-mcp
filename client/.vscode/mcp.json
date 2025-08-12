@@ -1,0 +1,8 @@
+{
+  "servers": {
+    "aos": {
+      "type": "http",
+      "url": "http://mcp-host:8000/mcp",
+    }
+  }
+}

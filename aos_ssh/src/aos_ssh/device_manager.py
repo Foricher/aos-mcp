@@ -2,19 +2,21 @@
 import dataclasses
 from typing import Any, List,Optional
 from dataclasses import dataclass
+from dataclasses import field
 
 
 devices = [] # Global list to store devices
 
-def get_device_by_ip_address(ip: str) -> Optional['Device']:
-    return next((d for d in devices if d.ip_address == ip), None)
+def get_device_by_host(host: str) -> Optional['Device']:
+    return next((d for d in devices if d.host == host), None)
 
 
 @dataclass
 class Device :
-   ip_address: str
+   host: str
    user : str
    password : str
+   port : int = field(default=22)
 #   serial_number : Optional[List[str]] = None
 #   name : Optional[str] = None
 #   description : Optional[str] = None
@@ -32,6 +34,8 @@ class Device :
         device = cls(
             *[data.get(fld.name) for fld in dataclasses.fields(Device)]
         )
+        if device.port is None:
+            device.port = 22
         devices.append(device)
    
     

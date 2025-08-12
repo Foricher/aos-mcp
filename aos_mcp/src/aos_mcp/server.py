@@ -46,7 +46,7 @@ def list_devices() -> str:
 
 
 #@mcp.tool()
-def execute_command(ip_address: str, command: str, ctx:Context) -> str:
+def execute_command(host: str, command: str, ctx:Context) -> str:
     """execute a command on an Alcatel AOS switch via its ip address.
        Command list : 
          - `show system`: Displays basic system information for the switch. Information includes a switch name, user-defined system description, system version
@@ -71,8 +71,8 @@ name, administrative contact, location, object ID, up time, and system services.
     returns:
         str: The unstructured content of the command execution or an error message
     """
-    logger.info(f"Executing command: {command} on device with IP: {ip_address}")
-    r = requests.post(f'{args.aos_url}/command', json={"ip_address": ip_address, "command": command})
+    logger.info(f"Executing command: {command} on device with host: {host}")
+    r = requests.post(f'{args.aos_url}/command', json={"host": host, "command": command})
     logger.debug(r.json())
     if r.status_code == 200:
         return r.json().get("stdout", "No output returned")
@@ -81,13 +81,16 @@ name, administrative contact, location, object ID, up time, and system services.
 
 
 @mcp.prompt()
-def review_code(code: str) -> str:
-    return f"Please review this code:\\n\\n{code}"
+def aos_system_hardware_info(switch_host: str) -> str:
+    return f"Display system information and hardware information of switch : {switch_host}"
 
-@mcp.resource("aos://example/{name}")
-def get_greeting(name: str) -> str:
-    return f"Hello, {name}!"
+@mcp.prompt()
+def aos_commands() -> str:
+    return f"display all commands available for switches"
 
+@mcp.resource("aos://information/{name}")
+def aos_hello(name: str) -> str:
+    return f"Hello from aos mcp server, {name}!"
 
 def load_mcp_tools():
     with open("data/mcp_tools.yaml") as f:
@@ -106,32 +109,14 @@ def load_mcp_tools():
         except yaml.YAMLError as exc:
             logger.error(exc)
 
-def load_commands():
-    """Load commands from a file and register them as tools."""
-    docstring = execute_command.__doc__
-    try:
-        with open("data/commands.txt", "r") as f:
-            commands = f.read()
-        if commands.strip() != "":
-            docstring=commands
-            print("Commands loaded successfully.")
-        else:
-            print("No commands found in the file.") 
-    except FileNotFoundError:
-        print("Commands file not found. No commands loaded.") 
-    mcp.add_tool(execute_command, name="execute_command", description=docstring) 
-    print("Commands loaded and tool registered.") 
-
 def main():
     logger.setLevel(args.log_level.upper())
     print(logger.getEffectiveLevel())
-    logger.info("aos-mcp starting...")
-    logger.info(args.aos_url)
-#    load_commands()
+    logger.info("aos-mcp starting port: %i, transport: %s ...", args.port, args.transport)
+    logger.info("aos_url: %s",args.aos_url)
     load_mcp_tools()
     mcp.run(transport=args.transport)
 
 
-
 if __name__ == "__main__":
-    main
+    main()

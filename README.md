@@ -2,37 +2,105 @@
 # ALE AOS mcp server 
 
 This project provides a mcp (model context protocol) server for alcatel aos switches, see https://modelcontextprotocol.io/docs/getting-started/intro.  
+It enables LLM interactions with alctel aos network switches.
 It contains two subprojects :
  - aos_ssh : provides a rest API to executes ssh command on AlE aos switches
  - aos_mcp : mcp server providing mcp tools to llm to executes basic ssh commands through aos_ssh server.  
 
 
- ## copilot sample
+## Deploy mcp and ssh servers 
 
-![Example with copilot](pictures/copilot.png)
+Docker images for aos_ssh and aos_mcp servers are availables:
+  - docker.io/foricher/ale-aos-ssh:<tag>
+  - docker.io/foricher/ale-aos-mcp:<tag>
 
+Under deploy folder, the mcp server side is available with a docker compose deployment.
 
-## run docker compose
+Update `data\aos.json` file with your switches host, user, password for ssh connections. 
 
-```  
+```json
+[ 
+    { 
+      "host": "host_or_ip_address1",
+      "user": "user", 
+      "password": "password"
+    },
+    { 
+      "host": "host_or_ip_address2",
+      "user": "user", 
+      "password": "password"
+    }
+]
+```
+
+Launch docker compose
+
+```bash  
  cd deploy
  docker compose up 
 ``` 
 
-## mcp inspector
+By default, mcp server is deployed with transport streamable-http
+
+## Test with mcp inspector
+
+You can test aos mcp server by using mcp inpector tool, see https://modelcontextprotocol.io/legacy/tools/inspector 
 
 ```  
 npx @modelcontextprotocol/inspector
 ```  
 
+- Use Tranport Type : Streamable HTTP
+- Enter your url http://mcp-host:8000/mcp
+- Enter proxy session Token
 
-## gemini cli
+
+![mcp inspector](pictures/mcp-inspector.png)
+
+ ## Use copilot with visual stdio code
+
+ put under '.vscode' folder, file 'mcp.json' as below. 
+
+ ```json
+ {
+  "servers": {
+    "aos": {
+      "type": "http",
+      "url": "http://<aos-mcp-host>:8000/mcp"
+    }
+  }
+}
+ ```
+
+![Example with copilot](pictures/copilot.png)
+
+
+
+
+## Use gemini cli
+
+ put under '.gemini' folder, file 'settings.json' as below. 
+
+  ```json
+{
+  "mcpServers": {
+    "aos": {
+      "name": "AOS MCP Server",
+      "description": "AOS MCP Server for managing AOS switches",
+      "httpUrl": "http://<aos-mcp-host>:8000/mcp",
+      "timeout" : 60000
+    }
+  }
+}
+```
 
 Zscaler issue
-``` 
+```bash 
 set NODE_TLS_REJECT_UNAUTHORIZED=0
 ``` 
 
-``` 
+```bash 
 npx https://github.com/google-gemini/gemini-cli
 ``` 
+
+![gemini cli](pictures/gemini-cli.png)

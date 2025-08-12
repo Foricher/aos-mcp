@@ -8,7 +8,7 @@ uv sync
 source /aos-ssh/.venv/bin/activate
 
 ### run 
-uv run main.py 
+uv run aos_mcp 
 
 
 

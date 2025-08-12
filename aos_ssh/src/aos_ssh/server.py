@@ -2,17 +2,17 @@
 import dataclasses
 import json
 from typing import Optional
-from .device_manager import Device, devices, get_device_by_ip_address 
+from .device_manager import Device, devices, get_device_by_host 
 from fastapi import FastAPI, HTTPException
 import uvicorn
 from . import ssh_session_manager as SSHSessionManager
 from pydantic import BaseModel
 import argparse
 
-aos_filename = 'data/aos.json'
+aos_filename = "data/aos.json"
 
 app = FastAPI(debug=True)
-def load_conf():
+def load_conf(aos_filename):
     with open(aos_filename) as f:
         data = json.load(f)
         for fields in data :
@@ -27,7 +27,7 @@ def read_root():
 @app.post("/management/devices")
 def set_device(device: Device):
     """Create/upadte a device entry."""
-    current_device = get_device_by_ip_address(device.ip_address)
+    current_device = get_device_by_host(device.host)
     if current_device is not None:
         devices.remove(current_device)
     devices.append(device)
@@ -36,29 +36,29 @@ def set_device(device: Device):
         json.dump(data, fd, indent=2)
     return {"status": "success", "device": device}
 
-@app.delete("/management/devices/{ip_address}")
-def delete_device(ip_address: str):
+@app.delete("/management/devices/{host}")
+def delete_device(host: str):
     """Delete a device entry by IP address."""
-    device = get_device_by_ip_address(ip_address)
+    device = get_device_by_host(host)
     if device is None:
         raise HTTPException(status_code=404, detail="Device not found")
     devices.remove(device)
     data = [dataclasses.asdict(d) for d in devices]
     with open(aos_filename, 'w') as fd:
         json.dump(data, fd, indent=2)
-    return {"status": "success", "message": f"Device {ip_address} deleted successfully."}
+    return {"status": "success", "message": f"Device {host} deleted successfully."}
 
 
     
-@app.get("/devices/{ip_address}") 
-def get_device(ip_address: str) -> Device:      
-    """Get a device entry by IP address.""" 
-    device = get_device_by_ip_address(ip_address)
+@app.get("/devices/{host}") 
+def get_device(host: str) -> Device:      
+    """Get a device entry by host.""" 
+    device = get_device_by_host(host)
     if device is None:
         raise HTTPException(status_code=404, detail="Device not found")  
 
     return {    
-        "ip_address": device.ip_address,    
+        "host": device.host,    
     }  # Return the device as a dictionary  
 
 
@@ -68,7 +68,7 @@ def read_devices():
     def to_dict(device: Device) -> dict:
         return {
 #            "serial_number": device.serial_number,
-            "ip_address": device.ip_address,
+            "host": device.host,
 #            "name": device.name,
 #            "description": device.description,
 #            "organization": device.organization,
@@ -78,7 +78,7 @@ def read_devices():
     return arr
 
 class Command(BaseModel):
-    ip_address: str
+    host: str
     command: str 
 class CommandResponse(BaseModel):
     stdout: Optional[str] = None
@@ -86,14 +86,14 @@ class CommandResponse(BaseModel):
 
 @app.post("/command")
 def execute_command(command:Command):
-    device = get_device_by_ip_address(command.ip_address)
+    device = get_device_by_host(command.host)
     if device is None:
         raise HTTPException(status_code=404, detail="Device not found")
-    session, error_msg = SSHSessionManager.get_or_create_session(command.ip_address, device.user, device.password)
+    session, error_msg = SSHSessionManager.get_or_create_session(command.host, device.user, device.password,port=device.port)
     if session is None: 
         raise HTTPException(status_code=404, detail=f"Failed to create SSH session: {error_msg}")
-    stdin, stdout, stderr = SSHSessionManager.execute_command(command.ip_address, command.command)
-    print(f"Command executed: {command.command} on {command.ip_address}\n[stsdout]\n{stdout}\n[stderr]\n{stderr}")
+    stdin, stdout, stderr = SSHSessionManager.execute_command(command.host, command.command)
+    print(f"Command executed: {command.command} on {command.host}\n[stsdout]\n{stdout}\n[stderr]\n{stderr}")
     return CommandResponse(
         stdout=stdout,
         stderr=stderr
@@ -103,9 +103,12 @@ def main():
     parser = argparse.ArgumentParser(description='AOS MCP Server Options')
     parser.add_argument('--port', type=int, default=8110, help='AOS SSH Server Port')
     parser.add_argument('--log-level', type=str, default="info", help='Log level (debug, info, warning, error, critical)')
+    parser.add_argument('--aos-file', type=str, default="data/aos.json", help='aos configuration file')
     args = parser.parse_args()
-    print(f"Start AOS SSH Server Port: {args.port}, log-level: {args.log_level}",)
-    load_conf()
+    print(f"Start AOS SSH Server Port: {args.port}, log-level: {args.log_level}, aos-file: {args.aos_file}")
+    globals()["aos_filename"]  = args.aos_file
+    print(globals()["aos_filename"] )
+    load_conf(args.aos_file)
     print(devices)
     uvicorn.run(app, host="0.0.0.0", port=args.port, log_level=args.log_level)
 

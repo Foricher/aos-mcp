@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "aos": {
+      "name": "AOS MCP Server",
+      "description": "AOS MCP Server for managing AOS switches",
+      "httpUrl": "http://mcp-host:8000/mcp",
+      "timeout" : 60000
+    }
+  }
+}

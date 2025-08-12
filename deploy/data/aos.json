@@ -1,0 +1,12 @@
+[ 
+    { 
+      "host": "host_or_ip_address1",
+      "user": "user", 
+      "password": "password"
+    },
+    { 
+      "host": "host_or_ip_address2",
+      "user": "admin", 
+      "password": "switch"
+    }
+]

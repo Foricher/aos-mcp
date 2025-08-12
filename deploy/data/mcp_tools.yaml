@@ -2,7 +2,7 @@ tools :
   - name: "execute_aos_comnand"
     title: "Execute basic aos command"
     description: |
-      Execute a command on an Alcatel AOS switch via its ip address.
+      Execute a command on an Alcatel AOS switch via its host, execute only one of following commands.
          Command list : 
          - `show system`: Displays basic system information for the switch. Information includes a switch name, user-defined system description, system version name, administrative contact, location, object ID, up time, and system services.
          - `show chassis`: Displays the basic configuration and status information for the switch chassis (serial number, model name, mac address, part number).

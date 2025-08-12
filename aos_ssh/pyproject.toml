@@ -1,5 +1,5 @@
 [project]
-name = "aos_ssh"
+name = "ale_aos_ssh"
 version = "0.1.0"
 description = "ALE AOS ssh server"
 readme = "README.md"
@@ -19,7 +19,7 @@ dev-dependencies = [
 ]
 
 [project.scripts]
-aos_ssh = "aos_ssh:main"
+ale_aos_ssh = "ale_aos_ssh:main"
 
 [build-system]
 requires = ["hatchling"]

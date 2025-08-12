@@ -5,7 +5,7 @@ ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 WORKDIR /app
 COPY uv.lock pyproject.toml /app/
 RUN --mount=type=cache,target=/root/.cache/uv \
-  uv sync --frozen --no-install-project --no-dev  --native-tls --allow-insecure-host https://files.pythonhosted.org
+  uv sync --frozen --no-install-project --no-dev --native-tls --allow-insecure-host https://files.pythonhosted.org --allow-insecure-host https://pypi.org
 COPY ./src README.md /app/
 RUN --mount=type=cache,target=/root/.cache/uv \
   uv sync --frozen --no-dev --allow-insecure-host https://files.pythonhosted.org  --allow-insecure-host https://pypi.org

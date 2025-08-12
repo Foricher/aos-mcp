@@ -12,10 +12,10 @@ It contains two subprojects :
 ## Deploy mcp and ssh servers 
 
 Docker images for aos_ssh and aos_mcp servers are availables:
-  - docker.io/foricher/ale-aos-ssh:<tag>
-  - docker.io/foricher/ale-aos-mcp:<tag>
+  - docker.io/foricher/ale-aos-ssh:[tag]
+  - docker.io/foricher/ale-aos-mcp:[tag]
 
-Under deploy folder, the mcp server side is available with a docker compose deployment.
+Under  `deploy` folder, the mcp server side is available with a docker compose deployment.
 
 Update `data\aos.json` file with your switches host, user, password for ssh connections. 
 
@@ -29,9 +29,38 @@ Update `data\aos.json` file with your switches host, user, password for ssh conn
     { 
       "host": "host_or_ip_address2",
       "user": "user", 
-      "password": "password"
+      "password": "password",
+      "port" : 22 //optional
     }
 ]
+```
+
+
+`data\mcp_tools.yaml` file describes tools used by LLM to run aos commands. 
+
+
+
+`docker-compose.yaml` file:
+```yaml
+services:
+  aos-ssh:
+    image: docker.io/foricher/ale-aos-ssh:0.0.5
+    ports:
+      - "8210:8110"
+    volumes:
+      - ./data/aos.json:/app/data/aos.json
+  aos-mcp:
+    image: docker.io/foricher/ale-aos-mcp:0.0.5
+    ports:
+      - "8000:8000"
+    environment:
+      - AOS_SSH_URL=http://aos-ssh:8110
+      - MCP_TRANSPORT=streamable-http
+#      - MCP_TRANSPORT=sse
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - aos-ssh
 ```
 
 Launch docker compose
@@ -52,7 +81,7 @@ npx @modelcontextprotocol/inspector
 ```  
 
 - Use Tranport Type : Streamable HTTP
-- Enter your url http://mcp-host:8000/mcp
+- Enter your url : http://mcp-host:8000/mcp
 - Enter proxy session Token
 
 
@@ -60,7 +89,7 @@ npx @modelcontextprotocol/inspector
 
  ## Use copilot with visual stdio code
 
- put under '.vscode' folder, file 'mcp.json' as below. 
+ put under `.vscode` folder, file 'mcp.json' as below. 
 
  ```json
  {
@@ -80,7 +109,7 @@ npx @modelcontextprotocol/inspector
 
 ## Use gemini cli
 
- put under '.gemini' folder, file 'settings.json' as below. 
+ put under `.gemini` folder, file 'settings.json' as below. 
 
   ```json
 {

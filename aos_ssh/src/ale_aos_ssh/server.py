@@ -103,12 +103,12 @@ def main():
     parser = argparse.ArgumentParser(description='AOS MCP Server Options')
     parser.add_argument('--port', type=int, default=8110, help='AOS SSH Server Port')
     parser.add_argument('--log-level', type=str, default="info", help='Log level (debug, info, warning, error, critical)')
-    parser.add_argument('--aos-file', type=str, default="data/aos-ssh.json", help='aos configuration file')
+    parser.add_argument('--aos-ssh-file', type=str, default="data/aos-ssh.json", help='aos configuration file')
     args = parser.parse_args()
-    print(f"Start AOS SSH Server Port: {args.port}, log-level: {args.log_level}, aos-file: {args.aos_file}")
-    globals()["aos_filename"]  = args.aos_file
+    print(f"Start AOS SSH Server Port: {args.port}, log-level: {args.log_level}, aos-ssh-file: {args.aos_ssh_file}")
+    globals()["aos_filename"]  = args.aos_ssh_file
     print(globals()["aos_filename"] )
-    load_conf(args.aos_file)
+    load_conf(args.aos_ssh_file)
     print(devices)
     uvicorn.run(app, host="0.0.0.0", port=args.port, log_level=args.log_level)
 

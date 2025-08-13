@@ -8,12 +8,12 @@ from pydantic import Field
 
 logger = logging.getLogger("aos-mcp")
 parser = argparse.ArgumentParser(description='AOS MCP Server Options')
-parser.add_argument('--aos-url', type=str, default="http://localhost:8110", help='AOS Server URL')
+parser.add_argument('--aos-ssh-url', type=str, default="http://localhost:8110", help='AOS Server URL')
 parser.add_argument('--transport', type=str, default="stdio", help='transport method (stdio, streamable-http, sse, etc.)')
 parser.add_argument('--port', type=int, default=8000, help='port for AOS MCP server')
 parser.add_argument('--log-level', type=str, default="INFO", help='Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)')
 args = parser.parse_args()
-print(f"Using AOS URL: {args.aos_url}")
+print(f"Using AOS SSH URL: {args.aos_ssh_url}")
 print(f"Using transport: {args.transport}")
 
 
@@ -37,7 +37,7 @@ def list_devices() -> str:
     returns:
         str: The unstructured content of the command execution or an error message
     """
-    r = requests.get(f'{args.aos_url}/devices')
+    r = requests.get(f'{args.aos_ssh_url}/devices')
     print(r.json())
     if r.status_code == 200:
         return r.text
@@ -74,7 +74,7 @@ name, administrative contact, location, object ID, up time, and system services.
         str: The unstructured content of the command execution or an error message
     """
     logger.info(f"Executing command: {command} on device with host: {host}")
-    r = requests.post(f'{args.aos_url}/command', json={"host": host, "command": command})
+    r = requests.post(f'{args.aos_ssh_url}/command', json={"host": host, "command": command})
     logger.debug(r.json())
     if r.status_code == 200:
         return r.json().get("stdout", "No output returned")
@@ -115,7 +115,7 @@ def main():
     logger.setLevel(args.log_level.upper())
     print(logger.getEffectiveLevel())
     logger.info("aos-mcp starting port: %i, transport: %s ...", args.port, args.transport)
-    logger.info("aos_url: %s",args.aos_url)
+    logger.info("aos-ssh-url: %s",args.aos_ssh_url)
     load_mcp_tools()
     mcp.run(transport=args.transport)
 

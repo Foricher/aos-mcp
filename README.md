@@ -44,13 +44,13 @@ Update `data\aos-ssh.json` file with your switches host, user, password for ssh 
 ```yaml
 services:
   aos-ssh:
-    image: docker.io/foricher/ale-aos-ssh:0.0.7
+    image: docker.io/foricher/ale-aos-ssh:0.0.8
     ports:
       - "8210:8110"
     volumes:
       - ./data/aos.json:/app/data/aos.json
   aos-mcp:
-    image: docker.io/foricher/ale-aos-mcp:0.0.7
+    image: docker.io/foricher/ale-aos-mcp:0.0.8
     ports:
       - "8000:8000"
     environment:
@@ -130,7 +130,7 @@ set NODE_TLS_REJECT_UNAUTHORIZED=0
 ``` 
 
 ```bash 
-npx https://github.com/google-gemini/gemini-cli
+npx https://github.com/google-gemini/gemini-cli -m gemini-2.5-flash
 ``` 
 
 ![gemini cli](pictures/gemini-cli.png)

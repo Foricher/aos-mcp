@@ -8,16 +8,16 @@ uv sync
 source /aos-ssh/.venv/bin/activate
 
 ### run 
-uv run aos_mcp 
+uv run --native-tls ale_aos_mcp 
 
 
 
 ## docker
 ### build image
-docker build -t foricher/ale-aos-mcp:0.0.7 .
+docker build -t foricher/ale-aos-mcp:0.0.8 .
 
 ### run image
-docker run -it -p 8000:8000  -v ./data:/app/data -e MCP_TRANSPORT=sse docker.io/foricher/ale-aos-mcp:0.0.7
+docker run -it -p 8000:8000  -v ./data:/app/data -e MCP_TRANSPORT=sse docker.io/foricher/ale-aos-mcp:0.0.8
 
 
 ## mcp inspector

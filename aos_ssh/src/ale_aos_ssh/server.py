@@ -9,7 +9,7 @@ from . import ssh_session_manager as SSHSessionManager
 from pydantic import BaseModel
 import argparse
 
-aos_filename = "data/aos.json"
+aos_filename = "data/aos-ssh.json"
 
 app = FastAPI(debug=True)
 def load_conf(aos_filename):
@@ -103,7 +103,7 @@ def main():
     parser = argparse.ArgumentParser(description='AOS MCP Server Options')
     parser.add_argument('--port', type=int, default=8110, help='AOS SSH Server Port')
     parser.add_argument('--log-level', type=str, default="info", help='Log level (debug, info, warning, error, critical)')
-    parser.add_argument('--aos-file', type=str, default="data/aos.json", help='aos configuration file')
+    parser.add_argument('--aos-file', type=str, default="data/aos-ssh.json", help='aos configuration file')
     args = parser.parse_args()
     print(f"Start AOS SSH Server Port: {args.port}, log-level: {args.log_level}, aos-file: {args.aos_file}")
     globals()["aos_filename"]  = args.aos_file

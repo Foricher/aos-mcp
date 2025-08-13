@@ -1,12 +1,12 @@
 services:
   aos-ssh:
-    image: docker.io/foricher/ale-aos-ssh:0.0.5
+    image: docker.io/foricher/ale-aos-ssh:0.0.7
     ports:
       - "8210:8110"
     volumes:
-      - ./data/aos.json:/app/data/aos.json
+      - ./data/aos-ssh.json:/app/data/aos-ssh.json
   aos-mcp:
-    image: docker.io/foricher/ale-aos-mcp:0.0.5
+    image: docker.io/foricher/ale-aos-mcp:0.0.6
     ports:
       - "8000:8000"
     environment:

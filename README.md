@@ -17,7 +17,7 @@ Docker images for aos_ssh and aos_mcp servers are availables:
 
 Under  `deploy` folder, the mcp server side is available with a docker compose deployment.
 
-Update `data\aos.json` file with your switches host, user, password for ssh connections. 
+Update `data\aos-ssh.json` file with your switches host, user, password for ssh connections. 
 
 ```json
 [ 
@@ -44,13 +44,13 @@ Update `data\aos.json` file with your switches host, user, password for ssh conn
 ```yaml
 services:
   aos-ssh:
-    image: docker.io/foricher/ale-aos-ssh:0.0.5
+    image: docker.io/foricher/ale-aos-ssh:0.0.7
     ports:
       - "8210:8110"
     volumes:
       - ./data/aos.json:/app/data/aos.json
   aos-mcp:
-    image: docker.io/foricher/ale-aos-mcp:0.0.5
+    image: docker.io/foricher/ale-aos-mcp:0.0.7
     ports:
       - "8000:8000"
     environment:

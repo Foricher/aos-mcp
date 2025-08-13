@@ -14,5 +14,5 @@ COPY --from=builder /app /app
 ENV PATH="/app/.venv/bin:$PATH"
 EXPOSE 8110
 WORKDIR /app
-CMD ["python", "-m","aos_ssh", "--port", "8110"]
+CMD ["python", "-m","ale_aos_ssh", "--port", "8110"]
 

@@ -4,6 +4,7 @@ import argparse
 import requests
 import yaml
 import logging
+from pydantic import Field
 
 logger = logging.getLogger("aos-mcp")
 parser = argparse.ArgumentParser(description='AOS MCP Server Options')
@@ -46,7 +47,8 @@ def list_devices() -> str:
 
 
 #@mcp.tool()
-def execute_command(host: str, command: str, ctx:Context) -> str:
+def execute_command(host: str = Field(description="The host of the aos switch, host is the ip address or hostname of the switch"),
+                     command: str = Field(description="The command to execute on the aos switch"), ctx:Context= None) -> str:
     """execute a command on an Alcatel AOS switch via its ip address.
        Command list : 
          - `show system`: Displays basic system information for the switch. Information includes a switch name, user-defined system description, system version
@@ -66,8 +68,8 @@ name, administrative contact, location, object ID, up time, and system services.
          - `show interfaces <port>`: Displays the switch interfaces. Optional parameter <port> is the port to display, in format chassis/slot/port.
 
     args:
-        ip_address (str): The IP address of the remote server
-        command (str): The command to execute on the remote server
+        host (str): The host of the aos switch, host is the ip address or hostname of the switch
+        command (str): The command to execute on the aos switch
     returns:
         str: The unstructured content of the command execution or an error message
     """

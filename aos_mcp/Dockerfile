@@ -16,4 +16,4 @@ ENV AOS_SSH_URL="http://localhost:8110"
 ENV MCP_TRANSPORT="streamable-http"
 EXPOSE 8110
 WORKDIR /app
-CMD python -m aos_mcp --transport $MCP_TRANSPORT --aos-url $AOS_SSH_URL
+CMD python -m ale_aos_mcp --transport $MCP_TRANSPORT --aos-url $AOS_SSH_URL

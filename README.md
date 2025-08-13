@@ -48,7 +48,7 @@ services:
     ports:
       - "8210:8110"
     volumes:
-      - ./data/aos.json:/app/data/aos.json
+      - ./data/aos-ssh.json:/app/data/aos-ssh.json
   aos-mcp:
     image: docker.io/foricher/ale-aos-mcp:0.0.8
     ports:

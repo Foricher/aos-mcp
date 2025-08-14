@@ -40,6 +40,7 @@ Update `data\aos-ssh.json` file with your switches host, user, password for ssh 
 
 
 
+
 `docker-compose.yaml` file:
 ```yaml
 services:
@@ -89,7 +90,7 @@ npx @modelcontextprotocol/inspector
 
  ## Use copilot with visual stdio code
 
- put under `.vscode` folder, file 'mcp.json' as below. 
+Under your workspace, inside `.vscode` folder, put file `mcp.json` as below. 
 
  ```json
  {
@@ -103,6 +104,24 @@ npx @modelcontextprotocol/inspector
  ```
 
 ![Example with copilot](pictures/copilot.png)
+
+
+
+ ## Use cursor with visual stdio code
+
+Under your workspace, inside `.cursor` folder, put file `mcp.json` as below. 
+
+ ```json
+{
+    "mcpServers": {
+        "aos": {
+            "url": "http://<aos-mcp-host>:8000/mcp"
+        }
+    }
+}
+ ```
+
+![Example with cursor](pictures/cursor.png)
 
 
 

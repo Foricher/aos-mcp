@@ -12,8 +12,11 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 FROM base
 COPY --from=builder /app /app
 ENV PATH="/app/.venv/bin:$PATH"
-ENV AOS_SSH_URL="http://localhost:8110"
-ENV MCP_TRANSPORT="streamable-http"
+ENV ALE_AOS_MCP_SSH_URL="http://localhost:8110"
+ENV ALE_AOS_MCP_TRANSPORT="streamable-http"
+ENV ALE_AOS_MCP_PORT=8000
+ENV ALE_AOS_MCP_TOOLS_FILE=
+ENV ALE_AOS_MCP_LOG_LEVEL=INFO
 EXPOSE 8110
 WORKDIR /app
-CMD python -m ale_aos_mcp --transport $MCP_TRANSPORT --aos-ssh-url $AOS_SSH_URL
+CMD ["python", "-m","ale_aos_mcp"]

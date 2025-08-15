@@ -5,30 +5,31 @@ import requests
 import yaml
 import logging
 from pydantic import Field
+from importlib.resources import files
+import os 
+
 
 logger = logging.getLogger("aos-mcp")
 parser = argparse.ArgumentParser(description='AOS MCP Server Options')
-parser.add_argument('--aos-ssh-url', type=str, default="http://localhost:8110", help='AOS Server URL')
-parser.add_argument('--transport', type=str, default="stdio", help='transport method (stdio, streamable-http, sse, etc.)')
-parser.add_argument('--port', type=int, default=8000, help='port for AOS MCP server')
-parser.add_argument('--log-level', type=str, default="INFO", help='Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)')
+parser.add_argument('--aos-ssh-url', type=str, default=os.environ.get('ALE_AOS_MCP_SSH_URL',"http://localhost:8110"), help='AOS Server URL')
+parser.add_argument('--transport', type=str, default=os.environ.get('ALE_AOS_MCP_TRANSPORT',"stdio"), help='transport method (stdio, streamable-http, sse, etc.)')
+parser.add_argument('--port', type=int, default=os.environ.get('ALE_AOS_MCP_PORT',8000), help='port for AOS MCP server')
+parser.add_argument('--aos-tools-file', type=str, default=os.environ.get('ALE_AOS_MCP_TOOLS_FILE',""), help='mcp Tools file')
+parser.add_argument('--log-level', type=str, default=os.environ.get('ALE_AOS_MCP_LOG_LEVEL',"INFO"), help='Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)')
 args = parser.parse_args()
 print(f"Using AOS SSH URL: {args.aos_ssh_url}")
 print(f"Using transport: {args.transport}")
 
 
+resource_path = files('ale_aos_mcp.data')
+mcp_tools_file = resource_path / 'mcp_tools.yaml'
+if args.aos_tools_file:
+	mcp_tools_file = args.aos_tools_file
+
+print(mcp_tools_file)
+
 mcp = FastMCP("AOS MCP Server",host="0.0.0.0", port=args.port)
 
-
-@mcp.tool()
-def add(a: int, b: int, ctx :Context) -> int:
-    """Add two numbers"""
-    return a + b
-
-"""
-         - `show interfaces`: Displays general interface information (for example, hardware, MAC address, input errors, and output
-errors).
-"""
 
 
 @mcp.tool()
@@ -95,7 +96,7 @@ def aos_hello(name: str) -> str:
     return f"Hello from aos mcp server, {name}!"
 
 def load_mcp_tools():
-    with open("data/mcp_tools.yaml") as f:
+    with open(mcp_tools_file) as f:
         try:
             logger.info("Loading MCP tools from YAML file...")
             mcp_tools = yaml.safe_load(f)

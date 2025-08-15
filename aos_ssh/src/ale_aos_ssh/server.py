@@ -8,6 +8,7 @@ import uvicorn
 from . import ssh_session_manager as SSHSessionManager
 from pydantic import BaseModel
 import argparse
+import os
 
 aos_filename = "data/aos-ssh.json"
 
@@ -101,9 +102,9 @@ def execute_command(command:Command):
 
 def main():
     parser = argparse.ArgumentParser(description='AOS MCP Server Options')
-    parser.add_argument('--port', type=int, default=8110, help='AOS SSH Server Port')
-    parser.add_argument('--log-level', type=str, default="info", help='Log level (debug, info, warning, error, critical)')
-    parser.add_argument('--aos-ssh-file', type=str, default="data/aos-ssh.json", help='aos configuration file')
+    parser.add_argument('--port', type=int, default=os.environ.get('ALE_AOS_SSH_PORT',8110), help='AOS SSH Server Port')
+    parser.add_argument('--log-level', type=str, default=os.environ.get('ALE_AOS_SSH_LOG_LEVEL',"info"), help='Log level (debug, info, warning, error, critical)')
+    parser.add_argument('--aos-ssh-file', type=str, default=os.environ.get('ALE_AOS_SSH_FILE',"data/aos-ssh.json"), help='aos configuration file')
     args = parser.parse_args()
     print(f"Start AOS SSH Server Port: {args.port}, log-level: {args.log_level}, aos-ssh-file: {args.aos_ssh_file}")
     globals()["aos_filename"]  = args.aos_ssh_file

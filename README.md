@@ -45,19 +45,19 @@ Update `data\aos-ssh.json` file with your switches host, user, password for ssh 
 ```yaml
 services:
   aos-ssh:
-    image: docker.io/foricher/ale-aos-ssh:0.0.8
+    image: docker.io/foricher/ale-aos-ssh:0.0.9
     ports:
       - "8210:8110"
     volumes:
       - ./data/aos-ssh.json:/app/data/aos-ssh.json
   aos-mcp:
-    image: docker.io/foricher/ale-aos-mcp:0.0.8
+    image: docker.io/foricher/ale-aos-mcp:0.0.9
     ports:
       - "8000:8000"
     environment:
-      - AOS_SSH_URL=http://aos-ssh:8110
-      - MCP_TRANSPORT=streamable-http
-#      - MCP_TRANSPORT=sse
+      - ALE_AOS_MCP_SSH_URL=http://aos-ssh:8110
+      - ALE_AOS_MCP_TRANSPORT=streamable-http
+#      - ALE_AOS_MCP_TRANSPORT=sse
     volumes:
       - ./data:/app/data
     depends_on:

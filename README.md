@@ -8,6 +8,10 @@ It contains two subprojects :
  - aos_ssh : provides a rest API to run ssh cli command on ALE aos switches
  - aos_mcp : mcp server providing mcp tools to llm to run basic ssh commands through aos_ssh server REST api.  
 
+## Architecture
+
+![ALE AOS mcp server architecture](pictures/ale_aos_mcp.drawio.png)
+
 
 ## Deploy mcp and ssh servers 
 
@@ -88,9 +92,52 @@ npx @modelcontextprotocol/inspector
 
 ![mcp inspector](pictures/mcp-inspector.png)
 
- ## Use copilot with visual stdio code
+
+ ## Client
+
+
+
+- Connect to remote MCP server with Streamable http transport.
+
+  Both servers ale_aos_mcp, ale_aos_ssh run remotely.
+
+ ```json
+ {
+  "mcpServers": {
+    "aos": {
+      "type": "http",
+      "url": "http://<aos-mcp-host>:8000/mcp"
+    }
+  }
+}
+
+ ```
+
+- Connect to local MCP server with stdio transport.
+
+  Local ale_aos_mcp server connect to a remote ale_aos_ssh server via provided argument --aos-ssh-url url.
+
+
+ ```json
+{
+    "mcpServers": {
+        "aos": {
+            "command": "uv run ale_aos_mcp",
+            "args": [
+                "--aos-ssh-url",
+                "http://<aos-ssh-host>:8210"
+            ],
+            "env": {
+            }
+        }
+    }
+}
+ ```
+
+ ### Use Github Copilot with visual stdio code
 
 Under your workspace, inside `.vscode` folder, put file `mcp.json` as below. 
+- with Streamable http transport
 
  ```json
  {
@@ -101,13 +148,32 @@ Under your workspace, inside `.vscode` folder, put file `mcp.json` as below.
     }
   }
 }
+
  ```
 
-![Example with copilot](pictures/copilot.png)
+- with stdio transport
+
+ ```json
+{
+    "servers": {
+        "aos": {
+            "command": "uv run ale_aos_mcp",
+            "args": [
+                "--aos-ssh-url",
+                "http://<aos-ssh-host>:8210"
+            ],
+            "env": {
+            }
+        }
+    }
+}
+ ```
+
+![Example with github copilot](pictures/copilot.png)
 
 
 
- ## Use cursor with visual stdio code
+ ### Use cursor with visual stdio code
 
 Under your workspace, inside `.cursor` folder, put file `mcp.json` as below. 
 
@@ -126,7 +192,7 @@ Under your workspace, inside `.cursor` folder, put file `mcp.json` as below.
 
 
 
-## Use gemini cli
+### Use gemini cli
 
  put under `.gemini` folder, file 'settings.json' as below. 
 

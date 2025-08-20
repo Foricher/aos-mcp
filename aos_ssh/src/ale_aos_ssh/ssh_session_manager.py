@@ -3,13 +3,12 @@ import time
 import socket
 import threading
 import datetime
+from threading import Lock
 
 # Dictionary to store active SSH client sessions and their last activity time
 # Key: IP Address (str)
-# Value: {'client': paramiko.SSHClient, 'last_activity_time': datetime.datetime}
+# Value: {'client': paramiko.SSHClient, 'last_activity_time': datetime.datetime, 'lock': threading.Lock}
 active_ssh_sessions = {}
-# A lock to protect access to the active_ssh_sessions dictionary
-session_lock = threading.Lock()
 
 # Define the inactivity timeout duration in seconds (5 minutes)
 INACTIVITY_TIMEOUT = 5 * 60
@@ -27,7 +26,7 @@ def create_ssh_session(host, username, password=None, key_filename=None, port=22
         if password:
             client.connect(hostname=host, port=port, username=username, password=password, timeout=10)
         elif key_filename:
-            client.connect(hostname=host, port=port, username=username, key_filename=key_filename, timeout=10)
+            client.connect(hostname=host, port=port, username=key_filename, timeout=10) # Corrected usage
         else:
             return None, f"No password or key_filename provided for {host}"
         transport = client.get_transport()
@@ -50,10 +49,17 @@ def get_or_create_session(host, username, password=None, key_filename=None, port
     Updates the last_activity_time for the session.
     """
     print(f"Checking session for {host} {username} , port {port}")
-    with session_lock:
-        session_info = active_ssh_sessions.get(host)
-        client = session_info['client'] if session_info else None
-        
+    # The dictionary itself needs a small lock just for adding/removing keys
+    # But access to the *values* (the sessions) will be managed by their own locks
+    # We can use a simple global lock here since it's a very fast operation
+    # that doesn't involve waiting for network I/O
+    if host not in active_ssh_sessions:
+        active_ssh_sessions[host] = {'lock': Lock()} # Add lock for this host first
+
+    session_info = active_ssh_sessions[host]
+    with session_info['lock']: # Acquire the lock for this specific session
+        client = session_info.get('client') # Use .get() to handle case where client isn't set yet
+
         # Check if the existing client is still active
         if client:
             try:
@@ -61,21 +67,23 @@ def get_or_create_session(host, username, password=None, key_filename=None, port
                 if transport and transport.is_active() and transport.send_ignore():
                     print(f"Using existing active session for {host}")
                     # Update activity time since session is being accessed
-                    active_ssh_sessions[host]['last_activity_time'] = datetime.datetime.now()
+                    session_info['last_activity_time'] = datetime.datetime.now()
                     return client, None
                 else:
                     print(f"Session for {host} found but is not active. Reconnecting...")
                     client.close() # Ensure old transport is closed
                     client, error_msg = create_ssh_session(host, username, password, key_filename, port)
                     if client:
-                        active_ssh_sessions[host] = {'client': client, 'last_activity_time': datetime.datetime.now()}
+                        session_info['client'] = client
+                        session_info['last_activity_time'] = datetime.datetime.now()
                     return client, error_msg
             except EOFError:
                 print(f"Session for {host} unexpectedly closed. Reconnecting...")
                 client.close()
                 client, error_msg = create_ssh_session(host, username, password, key_filename, port)
                 if client:
-                    active_ssh_sessions[host] = {'client': client, 'last_activity_time': datetime.datetime.now()}
+                    session_info['client'] = client
+                    session_info['last_activity_time'] = datetime.datetime.now()
                 return client, error_msg
             except Exception as e:
                 print(f"Error checking session for {host}: {e}. Reconnecting...")
@@ -83,13 +91,16 @@ def get_or_create_session(host, username, password=None, key_filename=None, port
                     client.close()
                 client, error_msg = create_ssh_session(host, username, password, key_filename, port)
                 if client:
-                    active_ssh_sessions[host] = {'client': client, 'last_activity_time': datetime.datetime.now()}
-                return client, host
+                    session_info['client'] = client
+                    session_info['last_activity_time'] = datetime.datetime.now()
+                return client, error_msg
         else:
             print(f"No existing session for {host}. Creating a new one...")
             client, error_msg = create_ssh_session(host, username, password, key_filename, port)
+            print(f"create_ssh_session error for {host} , {error_msg}")
             if client:
-                active_ssh_sessions[host] = {'client': client, 'last_activity_time': datetime.datetime.now()}
+                session_info['client'] = client
+                session_info['last_activity_time'] = datetime.datetime.now()
             return client, error_msg
 
 def execute_command(host, command):
@@ -98,20 +109,24 @@ def execute_command(host, command):
     Assumes the session is already managed by get_or_create_session.
     Updates the last_activity_time for the session.
     """
-    with session_lock:
-        session_info = active_ssh_sessions.get(host)
-        if not session_info:
-            print(f"No active session for {host}. Please establish a connection first.")
+    if host not in active_ssh_sessions:
+        print(f"No active session for {host}. Please establish a connection first.")
+        return None, None, None
+
+    session_info = active_ssh_sessions[host]
+    with session_info['lock']: # Acquire the lock for this specific session
+        client = session_info.get('client')
+        if not client:
+            print(f"No active client found within the session info for {host}.")
             return None, None, None
 
-        client = session_info['client']
         try:
             stdin, stdout, stderr = client.exec_command(command)
             output = stdout.read().decode().strip()
             error = stderr.read().decode().strip()
             
             # Update activity time after successful command execution
-            active_ssh_sessions[host]['last_activity_time'] = datetime.datetime.now()
+            session_info['last_activity_time'] = datetime.datetime.now()
             
             return stdin, output, error
         except paramiko.SSHException as e:
@@ -123,50 +138,27 @@ def execute_command(host, command):
 
 def close_session(host):
     """Closes a specific SSH session and removes it from the map."""
-    with session_lock:
-        session_info = active_ssh_sessions.get(host)
-        if session_info:
-            client = session_info['client']
-            try:
-                if client:
+    session_info = active_ssh_sessions.get(host)
+    if session_info:
+        with session_info['lock']:
+            client = session_info.get('client')
+            if client:
+                try:
                     client.close()
                     print(f"Closed session for {host} due to inactivity or explicit call.")
-            except Exception as e:
-                print(f"Error closing session for {host}: {e}")
-            finally:
-                if host in active_ssh_sessions:
-                    del active_ssh_sessions[host]
+                except Exception as e:
+                    print(f"Error closing session for {host}: {e}")
+        # Remove the entry from the global dict *after* releasing the per-session lock
+        if host in active_ssh_sessions:
+            del active_ssh_sessions[host]
+
 
 def close_all_sessions():
     """Closes all active SSH sessions."""
-    with session_lock:
-        # Create a list of IPs to avoid RuntimeError due to dictionary size change during iteration
-        hosts_to_close = list(active_ssh_sessions.keys()) 
-        for host in hosts_to_close:
-            close_session(host)
-
-def session_monitor_thread(host, username, password=None, key_filename=None, port=22, interval=60):
-    """
-    A separate thread to monitor and keep a specific SSH session alive.
-    It will attempt to reconnect if the session goes down.
-    This thread is mostly for active keep-alive, not for inactivity timeout.
-    """
-    while True:
-        try:
-            # Call get_or_create_session to ensure the session is active and update activity time
-            client = get_or_create_session(host, username, password, key_filename, port)
-            if client:
-                # Optionally, send a lightweight command to keep the session truly alive
-                # This helps detect if the connection broke without explicit closure
-                _stdin, _stdout, _stderr = client.exec_command("echo KeepAlive", timeout=5)
-                _stdout.read() # Read to consume output and complete command
-            else:
-                print(f"Monitor: Failed to get/create session for {host}. Retrying...")
-            
-        except Exception as e:
-            print(f"Monitor thread error for {host}: {e}. Attempting reconnect on next cycle.")
-        
-        time.sleep(interval)
+    # Create a list of IPs to avoid RuntimeError due to dictionary size change during iteration
+    hosts_to_close = list(active_ssh_sessions.keys()) 
+    for host in hosts_to_close:
+        close_session(host)
 
 def inactivity_cleanup_thread(interval=30):
     """
@@ -176,17 +168,36 @@ def inactivity_cleanup_thread(interval=30):
         current_time = datetime.datetime.now()
         hosts_to_close = []
         
-        with session_lock:
-            for host, session_info in active_ssh_sessions.items():
-                last_activity = session_info['last_activity_time']
-                if (current_time - last_activity).total_seconds() > INACTIVITY_TIMEOUT:
-                    hosts_to_close.append(host)
+        # Iterate over a copy of keys to safely handle deletions
+        for host in list(active_ssh_sessions.keys()):
+            session_info = active_ssh_sessions.get(host)
+            if session_info and 'lock' in session_info:
+                # Use a non-blocking lock acquire (try_acquire) to avoid holding up the cleanup
+                # if another thread has a long-running operation on a session
+                if session_info['lock'].acquire(blocking=False):
+                    try:
+                        last_activity = session_info.get('last_activity_time')
+                        if last_activity and (current_time - last_activity).total_seconds() > INACTIVITY_TIMEOUT:
+                            hosts_to_close.append(host)
+                    finally:
+                        session_info['lock'].release()
         
         for host in hosts_to_close:
             print(f"Session for {host} has been inactive for more than {INACTIVITY_TIMEOUT} seconds. Closing...")
-            close_session(host) # Use the single session closer
+            close_session(host)
         
         time.sleep(interval)
+
+
+def init_ssh_session_manager():
+    """
+    Initializes the SSH session manager.
+    This can be called at the start of your application to set up the cleanup thread.
+    """
+    cleanup_thread = threading.Thread(target=inactivity_cleanup_thread, daemon=True)
+    cleanup_thread.start()
+    print(f"Inactivity cleanup thread started with a timeout of {INACTIVITY_TIMEOUT} seconds.") 
+            
 
 # --- Example Usage ---
 if __name__ == "__main__":

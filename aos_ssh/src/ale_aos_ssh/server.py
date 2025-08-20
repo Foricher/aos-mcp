@@ -111,6 +111,7 @@ def main():
     print(globals()["aos_filename"] )
     load_conf(args.aos_ssh_file)
     print(devices)
+    SSHSessionManager.init_ssh_session_manager()
     uvicorn.run(app, host="0.0.0.0", port=args.port, log_level=args.log_level)
 
 

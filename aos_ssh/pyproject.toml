@@ -8,7 +8,7 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "fastapi>=0.116.1",
+    "fastapi[standard]>=0.116.1",
     "paramiko>=4.0.0",
     "pydantic>=2.11.7",
     "uvicorn[standard]>=0.35.0",
@@ -24,3 +24,4 @@ ale_aos_ssh = "ale_aos_ssh:main"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+

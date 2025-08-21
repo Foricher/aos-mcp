@@ -1,18 +1,20 @@
 services:
   aos-ssh:
-    image: docker.io/foricher/ale-aos-ssh:0.0.9
+    image: docker.io/foricher/ale-aos-ssh:0.1.2
     ports:
       - "8210:8110"
     volumes:
-      - ./data/aos-ssh.json:/app/data/aos-ssh.json
+      - ./data/aos-ssh-host.json:/app/data/aos-ssh-host.json
+      - ./data/aos-ssh-conf.yaml:/app/data/aos-ssh-conf.yaml
   aos-mcp:
-    image: docker.io/foricher/ale-aos-mcp:0.0.9
+    image: docker.io/foricher/ale-aos-mcp:0.1.2
     ports:
       - "8000:8000"
     environment:
       - ALE_AOS_MCP_SSH_URL=http://aos-ssh:8110
       - ALE_AOS_MCP_TRANSPORT=streamable-http
 #      - ALE_AOS_MCP_TRANSPORT=sse
+      - ALE_AOS_MCP_TOOLS_FILE=/app/data/mcp_tools.yaml
     volumes:
       - ./data:/app/data
     depends_on:

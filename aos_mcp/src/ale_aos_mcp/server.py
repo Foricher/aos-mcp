@@ -8,7 +8,7 @@ from pydantic import Field
 from importlib.resources import files
 import os 
 
-
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("aos-mcp")
 parser = argparse.ArgumentParser(description='AOS MCP Server Options')
 parser.add_argument('--aos-ssh-url', type=str, default=os.environ.get('ALE_AOS_MCP_SSH_URL',"http://localhost:8110"), help='AOS Server URL')

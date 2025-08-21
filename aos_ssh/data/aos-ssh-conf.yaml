@@ -1,0 +1,5 @@
+allowed_aos_commands:
+  - show .*
+  - ping .*
+  - traceroute .*
+  

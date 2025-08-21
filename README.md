@@ -21,7 +21,7 @@ Docker images for aos_ssh and aos_mcp servers are availables:
 
 Under  `deploy` folder, the mcp server side is available with a docker compose deployment.
 
-Update `data\aos-ssh.json` file with your switches host, user, password for ssh connections. 
+Update `data\aos-ssh-host.json` file with your switches host, user, password for ssh connections. 
 
 ```json
 [ 
@@ -39,6 +39,16 @@ Update `data\aos-ssh.json` file with your switches host, user, password for ssh 
 ]
 ```
 
+Update `data\aos-ssh-conf.yaml` file with allowed aos commands. 
+
+```yaml
+allowed_aos_commands:
+  - show .*
+  - ping .*
+  - traceroute .*
+
+```
+
 
 `data\mcp_tools.yaml` file describes tools used by LLM to run aos commands. 
 
@@ -49,19 +59,21 @@ Update `data\aos-ssh.json` file with your switches host, user, password for ssh 
 ```yaml
 services:
   aos-ssh:
-    image: docker.io/foricher/ale-aos-ssh:0.0.9
+    image: docker.io/foricher/ale-aos-ssh:0.1.2
     ports:
       - "8210:8110"
     volumes:
-      - ./data/aos-ssh.json:/app/data/aos-ssh.json
+      - ./data/aos-ssh-host.json:/app/data/aos-ssh-host.json
+      - ./data/aos-ssh-conf.yaml:/app/data/aos-ssh-conf.yaml
   aos-mcp:
-    image: docker.io/foricher/ale-aos-mcp:0.0.9
+    image: docker.io/foricher/ale-aos-mcp:0.1.2
     ports:
       - "8000:8000"
     environment:
       - ALE_AOS_MCP_SSH_URL=http://aos-ssh:8110
       - ALE_AOS_MCP_TRANSPORT=streamable-http
 #      - ALE_AOS_MCP_TRANSPORT=sse
+      - ALE_AOS_MCP_TOOLS_FILE=/app/data/mcp_tools.yaml
     volumes:
       - ./data:/app/data
     depends_on:
@@ -169,13 +181,17 @@ Under your workspace, inside `.vscode` folder, put file `mcp.json` as below.
 }
  ```
 
-![Example with github copilot](pictures/copilot.png)
+Set chat `agent` mode
 
+
+![Example with github copilot](pictures/copilot.png)
 
 
  ### Use cursor with visual stdio code
 
-Under your workspace, inside `.cursor` folder, put file `mcp.json` as below. 
+Under your workspace, inside `.cursor` folder, put file `mcp.json` as below.
+
+Set chat `agent` mode
 
  ```json
 {

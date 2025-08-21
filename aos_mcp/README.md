@@ -30,12 +30,12 @@ uv pip install --system dist/ale_aos_mcp-0.1.0-py3-none-any.whl
 ## docker
 ### build image
 ```bash
-docker build -t foricher/ale-aos-mcp:0.0.9 .
+docker build -t foricher/ale-aos-mcp:0.1.2 .
 ```
 
 ### run image
 ```bash
-docker run -it -p 8000:8000  -v ./data:/app/data -e MCP_TRANSPORT=sse docker.io/foricher/ale-aos-mcp:0.0.9
+docker run -it -p 8000:8000  -v ./data:/app/data -e MCP_TRANSPORT=sse docker.io/foricher/ale-aos-mcp:0.1.2
 ```
 
 

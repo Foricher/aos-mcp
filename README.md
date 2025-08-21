@@ -21,6 +21,8 @@ Docker images for aos_ssh and aos_mcp servers are availables:
 
 Under  `deploy` folder, the mcp server side is available with a docker compose deployment.
 
+### ale-aos-ssh configuration
+
 Update `data\aos-ssh-host.json` file with your switches host, user, password for ssh connections. 
 
 ```json
@@ -49,11 +51,12 @@ allowed_aos_commands:
 
 ```
 
+### ale-aos-ssh configuration
 
 `data\mcp_tools.yaml` file describes tools used by LLM to run aos commands. 
 
 
-
+### docker compose file
 
 `docker-compose.yaml` file:
 ```yaml

@@ -1,4 +1,5 @@
 #from mcp import FastMCP
+from dataclasses import dataclass
 from mcp.server.fastmcp import FastMCP, Context
 import argparse
 import requests
@@ -7,8 +8,10 @@ import logging
 from pydantic import Field
 from importlib.resources import files
 import os 
+from pydantic import BaseModel, Field
 
 logging.basicConfig(level=logging.INFO)
+
 logger = logging.getLogger("aos-mcp")
 parser = argparse.ArgumentParser(description='AOS MCP Server Options')
 parser.add_argument('--aos-ssh-url', type=str, default=os.environ.get('ALE_AOS_MCP_SSH_URL',"http://localhost:8110"), help='AOS Server URL')
@@ -31,6 +34,28 @@ print(mcp_tools_file)
 mcp = FastMCP("AOS MCP Server",host="0.0.0.0", port=args.port)
 
 
+class UserInfo(BaseModel):
+    """Structured User Info data response"""
+
+    name: str = Field(description="user name")
+    email: str = Field(description="user email")
+
+
+@mcp.tool()
+async def test_elicit(ctx:Context) -> str:
+    """test elicit function to get user information."""
+    ctx.info(f"Processing test_elicit")
+    ctx.report_progress(50, 100)
+    
+    result = await ctx.elicit("Please provide your information", UserInfo)
+    action = result.action
+    if action == "cancel":
+        return "User cancelled the operation."
+    if action == "decline":
+        return "User decline then operation."
+    user = result.data
+    return   f"Hello {user.name}, you mail is {user.email}"
+    return 
 
 @mcp.tool()
 def list_devices() -> str:
@@ -48,7 +73,7 @@ def list_devices() -> str:
 
 
 #@mcp.tool()
-def execute_command(host: str = Field(description="The host of the aos switch, host is the ip address or hostname of the switch"),
+async def execute_command(host: str = Field(description="The host of the aos switch, host is the ip address or hostname of the switch"),
                      command: str = Field(description="The command to execute on the aos switch"), ctx:Context= None) -> str:
     """execute a command on an Alcatel AOS switch via its ip address.
        Command list : 
@@ -84,11 +109,11 @@ name, administrative contact, location, object ID, up time, and system services.
 
 
 @mcp.prompt()
-def aos_system_hardware_info(switch_host: str) -> str:
+async def aos_system_hardware_info(switch_host: str) -> str:
     return f"Display system information and hardware information of switch : {switch_host}"
 
 @mcp.prompt()
-def aos_commands() -> str:
+async def aos_commands() -> str:
     return f"display all commands available for switches"
 
 @mcp.resource("aos://information/{name}")

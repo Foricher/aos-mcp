@@ -228,13 +228,26 @@ Set chat `agent` mode
 }
 ```
 
-Zscaler issue
+Zscaler issue 
 ```bash 
+set NODE_EXTRA_CA_CERTS=C:\\Data\\zscaler\\zscaler.pem
 set NODE_TLS_REJECT_UNAUTHORIZED=0
 ``` 
 
+set gemini api key
+```bash 
+set GEMINI_KEY_API=<gemini-api-key>
+``` 
+
+install gemini-cli
+```bash 
+npm install -g @google/gemini-cli@latest
+gemini -m gemini-2.5-flash
+``` 
+or 
 ```bash 
 npx https://github.com/google-gemini/gemini-cli -m gemini-2.5-flash
 ``` 
+
 
 ![gemini cli](pictures/gemini-cli.png)

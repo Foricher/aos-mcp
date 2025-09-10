@@ -55,7 +55,6 @@ async def test_elicit(ctx:Context) -> str:
         return "User decline then operation."
     user = result.data
     return   f"Hello {user.name}, you mail is {user.email}"
-    return 
 
 @mcp.tool()
 def list_devices() -> str:

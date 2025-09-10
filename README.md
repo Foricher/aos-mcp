@@ -251,3 +251,39 @@ npx https://github.com/google-gemini/gemini-cli -m gemini-2.5-flash
 
 
 ![gemini cli](pictures/gemini-cli.png)
+
+
+### Use claude code cli
+
+for more information see (https://docs.anthropic.com/en/docs/claude-code/mcp)
+
+in case of Zscaler issue 
+```bash 
+set NODE_EXTRA_CA_CERTS=C:\\Data\\zscaler\\zscaler.pem
+set NODE_TLS_REJECT_UNAUTHORIZED=0
+``` 
+
+
+install claude code
+```bash 
+npm install -g @anthropic-ai/claude-code
+```
+
+under your project 
+```bash 
+cd <project>
+```
+
+add aos mcp server to claude into project.
+```bash 
+claude mcp add --transport http --scope project aos http://<mcp-server-host>:8000/mcp
+```
+
+run claude.
+```bash 
+claude
+```
+
+
+
+![claude code](pictures/claude-code.png)

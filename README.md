@@ -26,19 +26,32 @@ Under  `deploy` folder, the mcp server side is available with a docker compose d
 Update `data\aos-ssh-host.json` file with your switches host, user, password for ssh connections. 
 
 ```json
-[ 
-    { 
+{
+  "jump_ssh_hosts": [
+    {
+      "name": "jump_name",
+      "public_host": "public_host_or_ip_address",
+      "public_port": 22,
+      "private_host": "private_host_or_ip_address",
+      "private_port": 22,
+      "user": "jump_user",
+      "password": "jupmp_password"
+    }
+  ],
+  "hosts": [
+    {
       "host": "host_or_ip_address1",
-      "user": "user", 
+      "user": "user",
       "password": "password"
     },
-    { 
+    {
       "host": "host_or_ip_address2",
-      "user": "user", 
+      "user": "user",
       "password": "password",
-      "port" : 22 //optional
+      "jump_ssh_name": "jump_name"      
     }
-]
+  ]
+}
 ```
 
 Update `data\aos-ssh-conf.yaml` file with allowed aos commands. 
@@ -62,7 +75,7 @@ allowed_aos_commands:
 ```yaml
 services:
   aos-ssh:
-    image: docker.io/foricher/ale-aos-ssh:0.1.2
+    image: docker.io/foricher/ale-aos-ssh:0.1.2.1
     ports:
       - "8210:8110"
     volumes:

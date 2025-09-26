@@ -1,12 +1,26 @@
-[
-    { 
+{
+  "jump_ssh_hosts": [
+    {
+      "name": "jump_name",
+      "public_host": "public_host_or_ip_address",
+      "public_port": 22,
+      "private_host": "private_host_or_ip_address",
+      "private_port": 22,
+      "user": "jump_user",
+      "password": "jupmp_password"
+    }
+  ],
+  "hosts": [
+    {
       "host": "host_or_ip_address1",
-      "user": "user", 
+      "user": "user",
       "password": "password"
     },
-    { 
+    {
       "host": "host_or_ip_address2",
-      "user": "user", 
-      "password": "password"
+      "user": "user",
+      "password": "password",
+      "jump_ssh_name": "jump_name"      
     }
-]
+  ]
+}

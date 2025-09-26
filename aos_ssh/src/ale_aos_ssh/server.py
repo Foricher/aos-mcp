@@ -2,7 +2,7 @@
 import dataclasses
 import json
 from typing import Optional
-from .device_manager import Device, devices, get_device_by_host 
+from .device_manager import Device, JumpHost, devices, jump_ssh_boxes, get_device_by_host 
 from fastapi import FastAPI, HTTPException
 import uvicorn
 from . import ssh_session_manager as SSHSessionManager
@@ -16,14 +16,18 @@ import re
 aos_host_file : str = "data/aos-ssh-host.json"
 allowed_aos_commands : list[str] = []
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S',)
 logger = logging.getLogger("aos-ssh")
 app = FastAPI(debug=True)
 
 def load_host(aos_file):
     with open(aos_file) as f:
         data = json.load(f)
-        for fields in data :
+        for fields in data.get('jump_ssh_hosts',[]) :
+            JumpHost.load(fields)
+        for fields in data.get('hosts',[]) :
             Device.load(fields)
 
 
@@ -119,10 +123,11 @@ def execute_command(command:Command):
         raise HTTPException(status_code=404, detail="Device not found")
     if not check_command(command.command):
         raise HTTPException(status_code=403, detail=f"Command '{command.command}' is not allowed")
-    session, error_msg = SSHSessionManager.get_or_create_session(command.host, device.user, device.password,port=device.port)
+#    session, error_msg = SSHSessionManager.get_or_create_session(command.host, device.user, device.password,port=device.port,jump_ssh_host=device)
+    session, error_msg = SSHSessionManager.get_session(device)
     if session is None: 
         raise HTTPException(status_code=404, detail=f"Failed to create SSH session: {error_msg}")
-    stdin, stdout, stderr = SSHSessionManager.execute_command(command.host, command.command)
+    stdin, stdout, stderr = SSHSessionManager.execute_command(command.host, command.command, device.jump_ssh_name)
     logger.debug(f"Command executed: {command.command} on {command.host}\n[stsdout]\n{stdout}\n[stderr]\n{stderr}")
     return CommandResponse(
         stdout=stdout,
@@ -143,6 +148,8 @@ def main():
     load_config(args.aos_ssh_conf_file)
     load_host(args.aos_ssh_host_file)
 #    print(devices)
+    logger.info(f"Loaded {len(jump_ssh_boxes)} jump ssh hosts")
+    logger.info(f"Loaded {len(devices)} devices")
     SSHSessionManager.init_ssh_session_manager()
     uvicorn.run(app, host="0.0.0.0", port=args.port, log_level=args.log_level)
 

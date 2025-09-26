@@ -4,34 +4,59 @@ import socket
 import threading
 import datetime
 from threading import Lock
+from .device_manager import Device, JumpHost, jump_ssh_boxes
+import logging
+
+logger = logging.getLogger("aos-ssh")
 
 # Dictionary to store active SSH client sessions and their last activity time
 # Key: IP Address (str)
 # Value: {'client': paramiko.SSHClient, 'last_activity_time': datetime.datetime, 'lock': threading.Lock}
 active_ssh_sessions = {}
 
+
 # Define the inactivity timeout duration in seconds (5 minutes)
 INACTIVITY_TIMEOUT = 5 * 60
 
-def create_ssh_session(host, username, password=None, key_filename=None, port=22):
+def create_ssh_session(host:str, username:str, password:str=None, key_filename:str=None, port:int=22, 
+                       jump_client:paramiko.SSHClient=None, jump_private_host:str=None, jump_private_port:int=22): 
     """
     Creates and returns an SSH client session for the given host.
     Handles both password-based and key-based authentication.
     """
+    channel = None
+    if jump_client is not None:
+        logger.info(f"Creating SSH session to {host} via jump host")
+        try:
+            jump_transport = jump_client.get_transport()
+            dest_addr = (host, port)
+            local_addr = (jump_private_host if jump_private_host is not None else jump_client.get_transport().getpeername()[0], jump_private_port) # Local address can be arbitrary
+            channel = jump_transport.open_channel("direct-tcpip", dest_addr, local_addr)
+        except Exception as e:
+            return None, f"Failed to open channel through jump host: {e}"
+        except paramiko.AuthenticationException:
+            return None, f"Authentication failed for {username}@{host} via jump host"
+        except paramiko.SSHException as e:
+            return None, f"SSH error connecting to {host} via jump host: {e}"
+        except socket.error as e:
+            return None, f"Network error connecting to {host} via jump host: {e}"
+        except Exception as e:
+            return None, f"An unexpected error occurred: {e}"
+
     client = paramiko.SSHClient()
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy()) # Be cautious with AutoAddPolicy in production
     
     try:
         if password:
-            client.connect(hostname=host, port=port, username=username, password=password, timeout=10)
+            client.connect(hostname=host, port=port, username=username, password=password, timeout=10,sock=channel)
         elif key_filename:
-            client.connect(hostname=host, port=port, username=key_filename, timeout=10) # Corrected usage
+            client.connect(hostname=host, port=port, username=key_filename, timeout=10,sock=channel) # Corrected usage
         else:
             return None, f"No password or key_filename provided for {host}"
         transport = client.get_transport()
         transport.set_keepalive(60)
-        print(f"Successfully connected to {host}")
+        logger.info(f"Successfully connected to {host}")
         return client, None
     except paramiko.AuthenticationException:
         return None, f"Authentication failed for {username}@{host}"
@@ -41,22 +66,64 @@ def create_ssh_session(host, username, password=None, key_filename=None, port=22
         return None, f"Network error connecting to {host}: {e}"
     except Exception as e:
         return None, f"An unexpected error occurred: {e}"
-    return None, "Unknown error"
 
-def get_or_create_session(host, username, password=None, key_filename=None, port=22):
+
+def get_session(device : Device):
+    """Get or create an SSH session for the given device, handling jump hosts if necessary."""
+
+    if device.jump_ssh_name is not None:
+        jump_box = next((j for j in jump_ssh_boxes if j.name == device.jump_ssh_name), None)
+        if jump_box is None:
+            return None, f"Jump host {device.jump_ssh_name} not found for device {device.host}"
+        logger.info(f"Using jump host {jump_box.name} ({jump_box.public_host}) to reach {device.host}")
+        # First, get or create the jump box session
+        jump_client, error_msg = get_or_create_session(
+            host=jump_box.public_host,
+            username=jump_box.user,
+            password=jump_box.password,
+            port=jump_box.public_port,
+            is_jump_box=True,
+            jump_name=jump_box.name)
+        
+        if jump_client is None:
+            return None, f"Failed to connect to jump host {jump_box.name}: {error_msg}"
+        client, error_msg = get_or_create_session(
+                host=device.host,
+                port=device.port,
+                username=device.user,
+                password=device.password, 
+                is_jump_box=False,
+                jump_name=jump_box.name,
+                jump_client=jump_client,
+                jump_private_host=jump_box.private_host, 
+                jump_private_port=jump_box.private_port)
+    else:
+        client, error_msg = get_or_create_session(
+            host=device.host,
+            username=device.user,
+            password=device.password,
+            port=device.port)
+    return client, error_msg
+
+
+
+def get_or_create_session(host:str, username:str, password:str=None, key_filename:str=None, port:int=22, 
+                          is_jump_box:bool=False, jump_name:str=None,
+                          jump_client:paramiko.SSHClient=None, jump_private_host:str=None, jump_private_port:int=22):
     """
     Retrieves an existing active session or creates a new one if it doesn't exist or is closed.
     Updates the last_activity_time for the session.
     """
-    print(f"Checking session for {host} {username} , port {port}")
+    logger.info(f"Checking session for {host} {username} , port {port}")
     # The dictionary itself needs a small lock just for adding/removing keys
     # But access to the *values* (the sessions) will be managed by their own locks
     # We can use a simple global lock here since it's a very fast operation
     # that doesn't involve waiting for network I/O
-    if host not in active_ssh_sessions:
-        active_ssh_sessions[host] = {'lock': Lock()} # Add lock for this host first
+     # Use host:port as key for jump boxes to allow multiple jump boxes to same host on different ports
+    if (host,is_jump_box,jump_name) not in active_ssh_sessions:
+        active_ssh_sessions[(host,is_jump_box,jump_name)] = {'lock': Lock()} # Add lock for this host first
 
-    session_info = active_ssh_sessions[host]
+    session_info = active_ssh_sessions[(host,is_jump_box,jump_name)]
     with session_info['lock']: # Acquire the lock for this specific session
         client = session_info.get('client') # Use .get() to handle case where client isn't set yet
 
@@ -65,59 +132,78 @@ def get_or_create_session(host, username, password=None, key_filename=None, port
             try:
                 transport = client.get_transport()
                 if transport and transport.is_active() and transport.send_ignore():
-                    print(f"Using existing active session for {host}")
+                    logger.logger(f"Using existing active session for {host}")
                     # Update activity time since session is being accessed
                     session_info['last_activity_time'] = datetime.datetime.now()
                     return client, None
                 else:
-                    print(f"Session for {host} found but is not active. Reconnecting...")
+                    logger.info(f"Session for {host} found but is not active. Reconnecting...")
                     client.close() # Ensure old transport is closed
-                    client, error_msg = create_ssh_session(host, username, password, key_filename, port)
+                    client, error_msg = create_ssh_session(host, username, password, key_filename, port,
+                                                           jump_client, jump_private_host, jump_private_port)
                     if client:
                         session_info['client'] = client
+                        session_info['is_jump_box'] = is_jump_box
+                        session_info['jump_name'] = jump_name
+                        session_info['jump_client'] = jump_client
                         session_info['last_activity_time'] = datetime.datetime.now()
                     return client, error_msg
             except EOFError:
-                print(f"Session for {host} unexpectedly closed. Reconnecting...")
+                logger.info(f"Session for {host} unexpectedly closed. Reconnecting...")
                 client.close()
-                client, error_msg = create_ssh_session(host, username, password, key_filename, port)
+                client, error_msg = create_ssh_session(host, username, password, key_filename, port, 
+                                                       jump_client, jump_private_host, jump_private_port)
                 if client:
                     session_info['client'] = client
+                    session_info['is_jump_box'] = is_jump_box
+                    session_info['jump_name'] = jump_name
+                    session_info['jump_client'] = jump_client
                     session_info['last_activity_time'] = datetime.datetime.now()
                 return client, error_msg
             except Exception as e:
-                print(f"Error checking session for {host}: {e}. Reconnecting...")
+                logger.info(f"Error checking session for {host}: {e}. Reconnecting...")
                 if client:
                     client.close()
-                client, error_msg = create_ssh_session(host, username, password, key_filename, port)
+                client, error_msg = create_ssh_session(host, username, password, key_filename, port,
+                                                       jump_client, jump_private_host, jump_private_port)
                 if client:
                     session_info['client'] = client
+                    session_info['is_jump_box'] = is_jump_box
+                    session_info['jump_name'] = jump_name
+                    session_info['jump_client'] = jump_client
                     session_info['last_activity_time'] = datetime.datetime.now()
                 return client, error_msg
         else:
-            print(f"No existing session for {host}. Creating a new one...")
-            client, error_msg = create_ssh_session(host, username, password, key_filename, port)
-            print(f"create_ssh_session error for {host} , {error_msg}")
+            logger.info(f"No existing session for {host}. Creating a new one...")
+            client, error_msg = create_ssh_session(host, username, password, key_filename, port,
+                                                   jump_client, jump_private_host, jump_private_port)
+            logger.info(f"create_ssh_session result for {host} , error : {error_msg}")
             if client:
                 session_info['client'] = client
+                session_info['is_jump_box'] = is_jump_box
+                session_info['jump_name'] = jump_name
+                session_info['jump_client'] = jump_client
                 session_info['last_activity_time'] = datetime.datetime.now()
             return client, error_msg
 
-def execute_command(host, command):
+
+def execute_command(host, command, jump_name=None):
     """
     Executes a command on the specified SSH session.
     Assumes the session is already managed by get_or_create_session.
     Updates the last_activity_time for the session.
     """
-    if host not in active_ssh_sessions:
+
+
+    if (host,False,jump_name) not in active_ssh_sessions:
         print(f"No active session for {host}. Please establish a connection first.")
         return None, None, None
 
-    session_info = active_ssh_sessions[host]
+    session_info = active_ssh_sessions[(host,False, jump_name)]
     with session_info['lock']: # Acquire the lock for this specific session
         client = session_info.get('client')
         if not client:
-            print(f"No active client found within the session info for {host}.")
+            logger.info(f"No active client found within the session info for {host}.")
             return None, None, None
 
         try:
@@ -130,35 +216,35 @@ def execute_command(host, command):
             
             return stdin, output, error
         except paramiko.SSHException as e:
-            print(f"Error executing command on {host}: {e}")
+            logger.info(f"Error executing command on {host}: {e}")
             return None, None, str(e)
         except Exception as e:
-            print(f"An unexpected error occurred while executing command: {e}")
+            logger.info(f"An unexpected error occurred while executing command: {e}")
             return None, None, str(e)
 
-def close_session(host):
+def close_session(host, is_jump_box, jump_name):
     """Closes a specific SSH session and removes it from the map."""
-    session_info = active_ssh_sessions.get(host)
+    session_info = active_ssh_sessions.get((host,is_jump_box, jump_name))
     if session_info:
         with session_info['lock']:
             client = session_info.get('client')
             if client:
                 try:
                     client.close()
-                    print(f"Closed session for {host} due to inactivity or explicit call.")
+                    logger.info(f"Closed session for {host} due to inactivity or explicit call.")
                 except Exception as e:
-                    print(f"Error closing session for {host}: {e}")
+                    logger.info(f"Error closing session for {host}: {e}")
         # Remove the entry from the global dict *after* releasing the per-session lock
-        if host in active_ssh_sessions:
-            del active_ssh_sessions[host]
+        if (host, is_jump_box, jump_name) in active_ssh_sessions:
+            del active_ssh_sessions[(host, is_jump_box, jump_name)]
 
 
 def close_all_sessions():
     """Closes all active SSH sessions."""
     # Create a list of IPs to avoid RuntimeError due to dictionary size change during iteration
     hosts_to_close = list(active_ssh_sessions.keys()) 
-    for host in hosts_to_close:
-        close_session(host)
+    for host,jump_name in hosts_to_close:
+        close_session(host,jump_name)
 
 def inactivity_cleanup_thread(interval=30):
     """
@@ -167,25 +253,39 @@ def inactivity_cleanup_thread(interval=30):
     while True:
         current_time = datetime.datetime.now()
         hosts_to_close = []
+        jump_ssh_boxes_counter : dict[str,int]= {}
         
         # Iterate over a copy of keys to safely handle deletions
-        for host in list(active_ssh_sessions.keys()):
-            session_info = active_ssh_sessions.get(host)
+        for host, is_jump_box, jump_name in list(active_ssh_sessions.keys()):
+            session_info = active_ssh_sessions.get( (host, is_jump_box, jump_name) )
             if session_info and 'lock' in session_info:
                 # Use a non-blocking lock acquire (try_acquire) to avoid holding up the cleanup
                 # if another thread has a long-running operation on a session
                 if session_info['lock'].acquire(blocking=False):
                     try:
+                        is_jump_box : bool = session_info.get('is_jump_box')
+                        jump_name : str = session_info.get('jump_name')
+                        if jump_name and not is_jump_box:
+                            jump_ssh_boxes_counter[jump_name] = jump_ssh_boxes_counter.get(jump_name,0) + 1
                         last_activity = session_info.get('last_activity_time')
-                        if last_activity and (current_time - last_activity).total_seconds() > INACTIVITY_TIMEOUT:
-                            hosts_to_close.append(host)
+                        if not is_jump_box and last_activity and (current_time - last_activity).total_seconds() > INACTIVITY_TIMEOUT:
+                            hosts_to_close.append((host,is_jump_box, jump_name))
                     finally:
                         session_info['lock'].release()
         
-        for host in hosts_to_close:
-            print(f"Session for {host} has been inactive for more than {INACTIVITY_TIMEOUT} seconds. Closing...")
-            close_session(host)
-        
+        for host, is_jump_box, jump_name in hosts_to_close:
+            logger.info(f"Session for {host} has been inactive for more than {INACTIVITY_TIMEOUT} seconds. Closing...")
+            close_session(host,is_jump_box, jump_name)
+
+        # Now check jump boxes to see if they can be closed (no active sessions using them) 
+        for jump_box in jump_ssh_boxes :
+            if jump_box.name not in jump_ssh_boxes_counter:
+                host = jump_box.public_host
+                session_info = active_ssh_sessions.get( (host, True, jump_box.name) )
+                if session_info :
+                    close_session(host, True, jump_box.name)    
+
+
         time.sleep(interval)
 
 
@@ -196,7 +296,7 @@ def init_ssh_session_manager():
     """
     cleanup_thread = threading.Thread(target=inactivity_cleanup_thread, daemon=True)
     cleanup_thread.start()
-    print(f"Inactivity cleanup thread started with a timeout of {INACTIVITY_TIMEOUT} seconds.") 
+    logger.info(f"Inactivity cleanup thread started with a timeout of {INACTIVITY_TIMEOUT} seconds.") 
             
 
 # --- Example Usage ---

@@ -1,0 +1,47 @@
+{
+  "jump_ssh_hosts": [ 
+      {
+            "name" : "jump_host1",
+            "public_host": "172.25.190.150",
+            "public_port": 22,
+            "private_host": "172.25.190.150",
+            "private_port": 22,
+            "user": "christian",
+            "password": "christian"
+      }
+    ],
+  "hosts" :
+    [
+      {
+        "host": "172.25.190.13",
+        "user": "admin",
+        "password": "switch"
+      },
+      {
+        "host": "172.25.190.14",
+        "user": "admin",
+        "password": "switch"
+      },
+      {
+        "host": "172.25.190.15",
+        "user": "admin",
+        "password": "switch"
+      },
+      {
+        "host": "172.25.190.16",
+        "user": "admin",
+        "password": "switch"
+      },
+      {
+        "host": "172.25.190.17",
+        "user": "admin",
+        "password": "switch"
+      },
+      {
+        "host": "172.25.190.18",
+        "user": "admin",
+        "password": "switch",
+        "jump_ssh_name": "jump_host1"
+      }
+    ]
+}

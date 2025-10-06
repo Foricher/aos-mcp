@@ -3,7 +3,7 @@ import dataclasses
 import json
 from typing import Optional
 from .device_manager import Device, JumpHost, devices, jump_ssh_boxes, get_device_by_host 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 import uvicorn
 from . import ssh_session_manager as SSHSessionManager
 from pydantic import BaseModel
@@ -96,18 +96,21 @@ def get_device(host: str) -> Device:
 
 
 @app.get("/devices")
-def read_devices():
+def read_devices(tags: Optional[list[str]] = Query(None, description="Filter devices by tags")) -> list[dict]:
     def to_dict(device: Device) -> dict:
         return {
-#            "serial_number": device.serial_number,
             "host": device.host,
-#            "name": device.name,
-#            "description": device.description,
-#            "organization": device.organization,
-#            "site": device.site
+            "tags": device.tags,            
         }
-    arr = list(map(to_dict, devices))
+    def device_matches_tags(device_dict: dict) -> bool:
+        if tags is None:
+            return True
+        # Return True if the device has at least one of the specified tags
+        return any(tag in device_dict['tags'] for tag in tags)
+    
+    arr = list(filter(device_matches_tags, map(to_dict, devices)))
     return arr
+    
 
 class Command(BaseModel):
     host: str

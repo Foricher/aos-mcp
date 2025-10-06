@@ -33,6 +33,7 @@ class Device :
    user : str
    password : str
    port : int = field(default=22)
+   tags : List[str] = field(default_factory=list)
    jump_ssh_name : Optional[str] = None
 #   serial_number : Optional[List[str]] = None
 #   name : Optional[str] = None

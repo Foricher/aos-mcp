@@ -42,13 +42,15 @@ Update `data\aos-ssh-host.json` file with your switches host, user, password for
     {
       "host": "host_or_ip_address1",
       "user": "user",
-      "password": "password"
+      "password": "password",
+      "tags": ["sw1"]
     },
     {
       "host": "host_or_ip_address2",
       "user": "user",
       "password": "password",
-      "jump_ssh_name": "jump_name"      
+      "tags": ["sw2"],
+      "jump_ssh_name": "jump_name"
     }
   ]
 }

@@ -1,18 +1,27 @@
 [project]
 name = "ale_aos_ssh"
-version = "0.1.0"
+dynamic = ["version"]
 description = "ALE AOS ssh server"
 readme = "README.md"
 authors = [
     { name = "foricher", email = "christian.foricher@al-enterprise.com" }
 ]
 requires-python = ">=3.12"
+keywords = ["aos", "ssh", "mcp", "llm", "automation"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
 dependencies = [
-    "fastapi[standard]>=0.116.1",
-    "paramiko>=4.0.0",
-    "pydantic>=2.11.7",
-    "pyyaml>=6.0.2",
-    "uvicorn[standard]>=0.35.0",
+    "fastapi[standard]>=0.118.1",
+    "paramiko-ng>=2.9.0",
+    "pydantic>=2.12.0",
+    "pyyaml>=6.0.3",
+    "typing-inspection>=0.4.2",
+    "uvicorn[standard]>=0.37.0",
 ]
 
 dev-dependencies = [
@@ -22,7 +31,69 @@ dev-dependencies = [
 [project.scripts]
 ale_aos_ssh = "ale_aos_ssh:main"
 
+[tool.uv]
+default-groups = ["dev",]
+required-version = ">=0.7.2"
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.400",
+    "ruff>=0.8.5",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.version]
+source = "regex"
+path = "VERSION"
+pattern = "(?P<version>.+)"
+
+[project.urls]
+Repository = "https://github.com/foricher/aos-mcp"
+
+[tool.pyright]
+typeCheckingMode = "strict"
+include = ["src/ale_aos_ssh"]
+venvPath = "."
+venv = ".venv"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = ["README.md"]
+
+[tool.ruff.format]
+# quote-style = "single"
+quote-style = "double"
+indent-style = "tab"
+docstring-code-format = true
+
+[tool.ruff.lint]
+fixable = ["ALL"]
+select = [
+    "C4",       # flake8-comprehensions
+    "C90",      # mccabe
+    "E",        # pycodestyle
+    "F",        # pyflakes
+    "FAST001",  # FastAPI route with redundant response_model argument
+    "FAST002",  # FastAPI dependency without Annotated
+    "FAST003",  # Parameter {arg_name} appears in route path, but not in {function_name} signature
+    "I",        # isort
+    "PERF",     # Perflint
+    "PL",       # Pylint
+    "UP",       # pyupgrade
+]
+ignore = ["PERF203", "PLC0415", "PLR0402"]
+mccabe.max-complexity = 24  # Default is 10
+
+# [tool.ruff.lint.per-file-ignores]
+# "__init__.py" = ["F401"]
+
+[tool.ruff.lint.pylint]
+allow-magic-value-types = ["bytes", "float", "int", "str"]
+max-args = 10           # Default is 5
+max-branches = 13       # Default is 12
+max-returns = 11        # Default is 6
+max-statements = 60     # Default is 50

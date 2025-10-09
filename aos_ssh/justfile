@@ -1,0 +1,111 @@
+#!/usr/bin/env just --justfile
+export PATH := join(justfile_directory(), ".env", "bin") + ":" + env_var('PATH')
+set positional-arguments
+
+# Default recipe to display help
+default:
+    @just --list
+
+# version := `sh -lc 'git describe --tags --abbrev=0 2>/dev/null || echo 0.0.0'`
+version_ := `cat VERSION`
+
+alias install := sync
+# Install dependencies with uv
+sync:
+    uv sync
+
+# Install development dependencies
+install-dev:
+    uv sync --dev
+
+alias run := dev
+# Run the aos_ssh FastAPI service
+dev:
+    @echo "🐍  Starting aos_ssh..."
+    uv run ale_aos_ssh
+
+alias black := format
+# Ruff can format the code
+format: install-dev
+    @echo "📏  Ruff is formating the code..."
+    -uv run ruff format .
+
+alias lint := check
+# Ruff can check the code
+check: install-dev
+    @echo "🔧  Ruff is checking the code..."
+    -uv run ruff check .
+
+# Show current version
+version:
+    @echo "🏷️  Version from file: {{version_}}, latest git tag: `git describe --tags --abbrev=0 2>/dev/null`"
+
+# 🏷️ Tag Git
+tag:
+    @echo "🏷️ Tag Git"
+    git tag -a v{{version_}} -m "Release {{version_}}" && git push origin v{{version_}}
+
+# Bump version manually
+bump new_version:
+    @echo "⬆️  Updating version to {{new_version}}..."
+    echo "{{new_version}}" > VERSION
+
+# Run pre-commit checks
+precommit: version format check
+    @echo ""
+    @echo "🏷️  Version : {{version_}} current tag: `git describe --tags --abbrev=0 2>/dev/null`"
+    @echo ""
+    @echo "🔄  Modified (unstaged):"
+    @git diff --name-only
+    @echo ""
+    @echo "✅  Modified (staged):"
+    @git diff --cached --name-only
+    @echo ""
+    @echo "🆕  Untracked files:"
+    @git ls-files --others --exclude-standard
+    @echo ""
+
+# Build Python package into source distributions and wheels
+dist:
+    @echo "🔨  Building the package..."
+    uv build
+
+# Upload distributions to pypi.org
+publish:
+    @echo "📤  Uploading distributions to pypi.org..."
+    uv publish
+
+# Build Docker image
+build *OPT:
+    @echo "🔨️  Building image verion {{version_}}..."
+    docker build --build-arg VERSION={{version_}} -t ale-aos-ssh:{{version_}} -t ale-aos-ssh:latest {{OPT}} .
+
+# Start Docker container
+start:
+    @echo "🧪  Starting container..."
+    docker run -it --name ale-aos-ssh --rm -p 8120:8110 \
+      -v "{{justfile_directory()}}/data/aos-ssh-host-brest.json:/app/data/aos-ssh-host.json" \
+      -v "{{justfile_directory()}}/data/aos-ssh-conf.yaml:/app/data/aos-ssh-conf.yaml" \
+      ale-aos-ssh:latest
+
+# Stop Docker container
+stop:
+    @echo "🛑  Stopping container..."
+    -docker stop ale-aos-ssh 2>/dev/null || true
+
+# Restart container
+restart: stop start
+
+# Show critical and high severity vulnerabilities of image
+scout:
+    @echo "📊  Scanning image"
+    docker scout cves --only-severity critical,high --details ale-aos-ssh:latest
+
+# Scan container's image to find vulnerabilities (CVE)
+trivy:
+    trivy image ale-aos-ssh:latest
+
+# Clean local Docker cache
+clean:
+    @echo "🧹  Cleaning local Docker cache..."
+    docker system prune -f

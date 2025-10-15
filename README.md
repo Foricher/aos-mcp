@@ -82,7 +82,7 @@ allowed_aos_commands:
 ```yaml
 services:
   aos-ssh:
-    image: docker.io/foricher/ale-aos-ssh:0.1.2.1
+    image: docker.io/foricher/ale-aos-ssh:0.1.2.2
     ports:
       - "8210:8110"
     volumes:

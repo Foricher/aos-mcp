@@ -10,6 +10,8 @@ It contains two subprojects :
 
 ## Demo with github copilot cli
 
+![Watch the video](pictures/copilot-aos-mcp.mp4)
+
 <video src="pictures/copilot-aos-mcp.mp4" width="320" height="240" controls></video>
 
 ## Architecture

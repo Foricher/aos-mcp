@@ -8,6 +8,10 @@ It contains two subprojects :
  - aos_ssh : provides a rest API to run ssh cli command on ALE aos switches
  - aos_mcp : mcp server providing mcp tools to llm to run basic ssh commands through aos_ssh server REST api.  
 
+## Demo with github copilot cli
+
+<video src="pictures/copilot-aos-mcp.mp4" width="320" height="240" controls></video>
+
 ## Architecture
 
 ![ALE AOS mcp server architecture](pictures/ale_aos_mcp.drawio.png)

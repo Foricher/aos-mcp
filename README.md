@@ -336,7 +336,7 @@ add opencode.json file into project.
   "mcp": {
     "aos": {
       "type": "remote",
-      "url": "http://172.25.190.68:8000/mcp",
+      "url": "http://<mcp-host>:8000/mcp",
       "enabled": true
     }
   }

@@ -307,3 +307,46 @@ claude
 
 
 ![claude code](pictures/claude-code.png)
+
+
+### Use opencode cli (linux only)
+
+for more information see (https://opencode.ai).
+
+in case of Zscaler issue 
+```bash 
+export NODE_TLS_REJECT_UNAUTHORIZED=0
+``` 
+
+
+install claude code
+```bash 
+npm i -g opencode-ai
+```
+
+under your project 
+```bash 
+cd <project>
+```
+
+add opencode.json file into project.
+```json 
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "aos": {
+      "type": "remote",
+      "url": "http://172.25.190.68:8000/mcp",
+      "enabled": true
+    }
+  }
+}
+```
+
+run opencode.
+```bash 
+opencode
+```
+
+
+![opencode](pictures/opencode.png)

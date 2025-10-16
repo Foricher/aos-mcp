@@ -9,7 +9,7 @@ that simplifies the management of network switches over SSH. It reads connection
 - 📡 Monitor and manage multiple switches efficiently
 
 This tool is ideal for network automation tasks, remote diagnostics, and centralized switch control in distributed environments.
-This service also acts as a transport layer for MCP (Multi-Component Platform) applications, enabling them to securely and programmatically interact with
+This service also acts as a transport layer for MCP (Model Context Protocol) server, enabling them to securely and programmatically interact with
 network devices through a unified API interface.
 
 ## Installation 
@@ -22,7 +22,7 @@ cd aos_ssh
 uv sync
 ```
 
-### Running the standalone AOS SSH development tools
+### 🚀 Running the standalone AOS SSH development tools
 To run aos_ssh command with uv from the aos_ssh directory:
 ```bash
 uv run ale_aos_ssh
@@ -56,7 +56,7 @@ You should get a 200 OK with something like this:
 }
 ```
 
-You can download the OpenAPI specification from http://127.0.0.1:8110/redoc
+📚 You can download the OpenAPI specification from http://127.0.0.1:8110/redoc
 
 ## 🛠️ Build & Publish package
 

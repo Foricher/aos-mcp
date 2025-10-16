@@ -1,32 +1,36 @@
 [project]
-name = "ale_aos_mcp"
+name = "ale_aos_client"
 dynamic = ["version"]
-description = "ALE AOS mcp server"
+description = "ALE AOS MCP Client"
 readme = "README.md"
-authors = [
-    { name = "foricher", email = "christian.foricher@al-enterprise.com" }
-]
 requires-python = ">=3.12"
-keywords = ["aos", "ssh", "mcp", "llm", "automation"]
-classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Intended Audience :: Developers",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
-]
 dependencies = [
-    "mcp[cli]>=1.12.4",
+    "authlib>=1.6.5",
+    "certifi>=2025.10.5",
+    "fastmcp>=2.12.4",
+    "h11>=0.16.0",
+    "httpcore>=1.0.9",
+    "httpx>=0.28.1",
+    "httpx-sse>=0.4.3",
+    "openapi-core>=0.19.5",
+    "openapi-pydantic>=0.5.1",
+    "openapi-schema-validator>=0.6.3",
+    "openapi-spec-validator>=0.7.2",
+    "pydantic>=2.12.0",
     "pyyaml>=6.0.3",
-    "requests>=2.32.4",
-]
-
-dev-dependencies = [
-    "hatchling"
+    "requests>=2.32.5",
+    "sse-starlette>=3.0.2",
+    "starlette<=0.48.0",
+    "urllib3>=2.5.0",
+    "uvicorn>=0.37.0",
 ]
 
 [project.scripts]
-ale_aos_mcp = "ale_aos_mcp:main"
+ale_aos_client = "ale_aos_client:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.uv]
 default-groups = ["dev",]
@@ -38,10 +42,6 @@ dev = [
     "ruff>=0.8.5",
 ]
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
 [tool.hatch.version]
 source = "regex"
 path = "VERSION"
@@ -52,7 +52,7 @@ Repository = "https://github.com/foricher/aos-mcp"
 
 [tool.pyright]
 typeCheckingMode = "strict"
-include = ["src/ale_aos_mcp"]
+include = ["src/ale_aos_client"]
 venvPath = "."
 venv = ".venv"
 

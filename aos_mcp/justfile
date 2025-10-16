@@ -19,10 +19,10 @@ install-dev:
     uv sync --dev
 
 alias dev := run
-# Run the aos_ssh FastAPI service
+# Run the aos_mcp FastMCP service
 run *OPT:
-    @echo "🐍  Starting aos_ssh..."
-    uv run ale_aos_ssh {{OPT}}
+    @echo "🐍  Starting aos_mcp..."
+    uv run ale_aos_mcp --aos-ssh-url http://localhost:8120 --transport streamable-http {{OPT}}
 
 alias black := format
 # Ruff can format the code
@@ -78,20 +78,20 @@ publish:
 # Build Docker image
 build *OPT:
     @echo "🔨️  Building image verion {{version_}}..."
-    docker build --build-arg VERSION={{version_}} -t ale-aos-ssh:{{version_}} -t ale-aos-ssh:latest {{OPT}} .
+    docker build --build-arg VERSION={{version_}} -t ale-aos-mcp:{{version_}} -t ale-aos-mcp:latest {{OPT}} .
 
 # Start Docker container
 start:
     @echo "🧪  Starting container..."
-    docker run -it --name ale-aos-ssh --rm -p 8120:8110 \
-      -v "{{justfile_directory()}}/data/aos-ssh-host-brest.json:/app/data/aos-ssh-host.json" \
-      -v "{{justfile_directory()}}/data/aos-ssh-conf.yaml:/app/data/aos-ssh-conf.yaml" \
-      ale-aos-ssh:latest
+    docker run -it --name ale-aos-mcp --rm -p 8000:8000 \
+      -v "{{justfile_directory()}}/data:/app/data" \
+      -e MCP_TRANSPORT=streamable-http \
+      ale-aos-mcp:latest
 
 # Stop Docker container
 stop:
     @echo "🛑  Stopping container..."
-    -docker stop ale-aos-ssh 2>/dev/null || true
+    -docker stop ale-aos-mcp 2>/dev/null || true
 
 # Restart container
 restart: stop start
@@ -99,11 +99,11 @@ restart: stop start
 # Show critical and high severity vulnerabilities of image
 scout:
     @echo "📊  Scanning image"
-    docker scout cves --only-severity critical,high --details ale-aos-ssh:latest
+    docker scout cves --only-severity critical,high --details ale-aos-mcp:latest
 
 # Scan container's image to find vulnerabilities (CVE)
 trivy:
-    trivy image ale-aos-ssh:latest
+    trivy image ale-aos-mcp:latest
 
 # Clean local Docker cache
 clean:

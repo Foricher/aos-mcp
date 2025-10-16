@@ -10,8 +10,9 @@ It contains two subprojects :
 
 ## Demos
 
-- Demo with github copilot cli  
-  https://github.com/user-attachments/assets/828169e4-867f-44cb-8bb6-dd90116090a2
+- Demo with github copilot cli
+  
+https://github.com/user-attachments/assets/828169e4-867f-44cb-8bb6-dd90116090a2
 
 
 - [Github Copilot with visual studio code](#use-github-copilot-with-visual-studio-code)

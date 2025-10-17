@@ -8,6 +8,19 @@ It contains two subprojects :
  - aos_ssh : provides a rest API to run ssh cli command on ALE aos switches
  - aos_mcp : mcp server providing mcp tools to llm to run basic ssh commands through aos_ssh server REST api.  
 
+## Demos
+
+- Demo with github copilot cli
+  
+https://github.com/user-attachments/assets/828169e4-867f-44cb-8bb6-dd90116090a2
+
+
+- [Github Copilot with visual studio code](#use-github-copilot-with-visual-studio-code)
+- [Cursor with visual studio code](#Use-cursor-with-visual-studio-code)
+- [Gemini cli](#Use-gemini-cli)
+- [Claude code cli](#Use-claude-code-cli)
+- [Opencode cli (linux only)](#use-opencode-cli-linux-only)
+
 ## Architecture
 
 ![ALE AOS mcp server architecture](pictures/ale_aos_mcp.drawio.png)
@@ -42,13 +55,15 @@ Update `data\aos-ssh-host.json` file with your switches host, user, password for
     {
       "host": "host_or_ip_address1",
       "user": "user",
-      "password": "password"
+      "password": "password",
+      "tags": ["sw1"]
     },
     {
       "host": "host_or_ip_address2",
       "user": "user",
       "password": "password",
-      "jump_ssh_name": "jump_name"      
+      "tags": ["sw2"],
+      "jump_ssh_name": "jump_name"
     }
   ]
 }
@@ -162,7 +177,7 @@ npx @modelcontextprotocol/inspector
 }
  ```
 
- ### Use Github Copilot with visual stdio code
+ ### Use Github Copilot with visual studio code
 
 Under your workspace, inside `.vscode` folder, put file `mcp.json` as below. 
 - with Streamable http transport
@@ -203,7 +218,7 @@ Set chat `agent` mode
 ![Example with github copilot](pictures/copilot.png)
 
 
- ### Use cursor with visual stdio code
+ ### Use cursor with visual studio code
 
 Under your workspace, inside `.cursor` folder, put file `mcp.json` as below.
 
@@ -300,3 +315,46 @@ claude
 
 
 ![claude code](pictures/claude-code.png)
+
+
+### Use opencode cli (linux only)
+
+for more information see (https://opencode.ai).
+
+in case of Zscaler issue 
+```bash 
+export NODE_TLS_REJECT_UNAUTHORIZED=0
+``` 
+
+
+install claude code
+```bash 
+npm i -g opencode-ai
+```
+
+under your project 
+```bash 
+cd <project>
+```
+
+add opencode.json file into project.
+```json 
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "aos": {
+      "type": "remote",
+      "url": "http://<mcp-host>:8000/mcp",
+      "enabled": true
+    }
+  }
+}
+```
+
+run opencode.
+```bash 
+opencode
+```
+
+
+![opencode](pictures/opencode.png)

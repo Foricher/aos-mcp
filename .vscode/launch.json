@@ -1,0 +1,73 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+
+    {
+        "type": "debugpy",
+        "request": "attach",
+        "name": "Attach Python",
+        "processId": "${command:pickProcess}"
+    },
+    {
+        "type": "debugpy",
+        "request": "launch",
+        "name": "Launch adk Python",
+        "cwd": "${workspaceFolder}/aos-agent",
+        "program": "/home/user/.local/bin/uv run --native-tls adk web --port=8120"
+    },
+    {
+        "name": "Python Debugger: aos ssh",
+        "type": "debugpy",
+        "request": "launch",
+        "module": "ale_aos_ssh",
+        "python": "${workspaceFolder}/aos_ssh/.venv/bin/python",
+        "args": [
+            "--aos-ssh-conf-file",
+            "${workspaceFolder}/aos_ssh/data/aos-ssh-conf.yaml",
+            "--aos-ssh-host-file",
+            "${workspaceFolder}/aos_ssh/data/aos-ssh-host-brest.json"
+        ],
+        "console": "integratedTerminal"
+    },
+    {
+        "name": "Python Debugger: aos mcp",
+        "type": "debugpy",
+        "request": "launch",
+        "module": "ale_aos_mcp",
+        "python": "${workspaceFolder}/aos_mcp/.venv/bin/python",
+        "args": [
+            "--aos-ssh-url",
+            "http://172.25.190.68:8210",
+            "--transport",
+            "streamable-http"
+        ],
+        "console": "integratedTerminal"
+    },
+    {
+        "name": "Python Debugger: Current File",
+        "type": "debugpy",
+        "request": "launch",
+        "program": "${file}",
+        "python": "${command:python.interpreterPath}",
+        "console": "integratedTerminal"
+    },
+    {
+        "name": "Python Debugger:Run ale_aos_ssh",
+        "type": "debugpy",
+        "request": "launch",
+        "program": "/home/user/.local/bin/uv",
+        "args": [
+            "run",
+            "--native-tls",
+            "ale_aos_ssh",
+            "--aos-ssh-file",
+            "data/aos-ssh-brest.json"
+            ],
+        "cwd": "${workspaceFolder}/aos_ssh",
+        "console": "integratedTerminal"
+    }
+    ]
+}

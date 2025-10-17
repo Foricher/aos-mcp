@@ -1,13 +1,16 @@
+from __future__ import annotations
+
 import argparse
 import dataclasses
 import json
 import logging
 import os
 import re
+from typing import Annotated
 
 import uvicorn
 import yaml
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, Query, status
 from fastapi.responses import Response
 from pydantic import BaseModel
 
@@ -104,18 +107,20 @@ def get_device(host: str) -> dict[str, str]:
 
 
 @app.get("/devices")
-def read_devices():
+def read_devices(tags: Annotated[list[str] | None, Query(description="Filter devices by tags")] = None) -> list[dict]:
     def to_dict(device: Device) -> dict:
         return {
-            #            "serial_number": device.serial_number,
             "host": device.host,
-            #            "name": device.name,
-            #            "description": device.description,
-            #            "organization": device.organization,
-            #            "site": device.site
+            "tags": device.tags,
         }
 
-    arr = list(map(to_dict, devices))
+    def device_matches_tags(device_dict: dict) -> bool:
+        if tags is None:
+            return True
+        # Return True if the device has at least one of the specified tags
+        return any(tag in device_dict["tags"] for tag in tags)
+
+    arr = list(filter(device_matches_tags, map(to_dict, devices)))
     return arr
 
 
@@ -125,8 +130,8 @@ class Command(BaseModel):
 
 
 class CommandResponse(BaseModel):
-    stdout: str | None = None
-    stderr: str | None = None
+    stdout: str | None
+    stderr: str | None
 
 
 @app.post("/command")

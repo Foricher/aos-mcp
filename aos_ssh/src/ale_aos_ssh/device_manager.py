@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import dataclasses
-from dataclasses import dataclass
-from typing import Any, Optional
+from dataclasses import dataclass, field
+from typing import Any
 
 
 @dataclass
@@ -22,7 +24,7 @@ class JumpHost:
         self.private_port = int(self.private_port)
 
     @classmethod
-    def load(cls, data: dict[str, Any]) -> "JumpHost":
+    def load(cls, data: dict[str, Any]) -> JumpHost:
         jump_box = cls(**{fld.name: data.get(fld.name) for fld in dataclasses.fields(cls)})
         # if jump_box.public_port is None:
         #     jump_box.public_port = 22
@@ -37,8 +39,9 @@ class Device:
     host: str
     user: str
     password: str
+    jump_ssh_name: str | None
+    tags: list[str] = field(default_factory=list)
     port: int = 22
-    jump_ssh_name: str | None = None
     #   serial_number : Optional[List[str]] = None
     #   name : Optional[str] = None
     #   description : Optional[str] = None
@@ -51,7 +54,7 @@ class Device:
         self.port = int(self.port)
 
     @classmethod
-    def load(cls, data: dict[str, Any]) -> "Device":
+    def load(cls, data: dict[str, Any]) -> Device:
         device = cls(**{fld.name: data.get(fld.name) for fld in dataclasses.fields(cls)})
         devices.append(device)
         return device
@@ -68,5 +71,5 @@ devices: list[Device] = []  # Global list to store devices
 jump_ssh_boxes: list[JumpHost] = []  # Global list to store jump boxes
 
 
-def get_device_by_host(host: str) -> Optional["Device"]:
+def get_device_by_host(host: str) -> Device | None:
     return next((d for d in devices if d.host == host), None)

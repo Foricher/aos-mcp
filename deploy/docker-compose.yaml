@@ -1,21 +1,34 @@
 services:
   aos-ssh:
-    image: docker.io/foricher/ale-aos-ssh:0.1.2.2
+    # image: ale-aos-ssh:latest
+    build:
+      context: ../aos_ssh
+      dockerfile: Dockerfile
     ports:
       - "8210:8110"
     volumes:
       - ./data/aos-ssh-host.json:/app/data/aos-ssh-host.json
       - ./data/aos-ssh-conf.yaml:/app/data/aos-ssh-conf.yaml
+    healthcheck:
+      test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:${ALE_AOS_SSH_PORT:-8110}/health')\" || exit 1" ]
+      interval: 50s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
   aos-mcp:
-    image: docker.io/foricher/ale-aos-mcp:0.1.2
+    # image: ale-aos-mcp:latest
+    build:
+      context: ../aos_mcp
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
     environment:
       - ALE_AOS_MCP_SSH_URL=http://aos-ssh:8110
       - ALE_AOS_MCP_TRANSPORT=streamable-http
-#      - ALE_AOS_MCP_TRANSPORT=sse
       - ALE_AOS_MCP_TOOLS_FILE=/app/data/mcp_tools.yaml
     volumes:
       - ./data:/app/data
     depends_on:
-      - aos-ssh
+      aos-ssh:
+        condition: service_healthy

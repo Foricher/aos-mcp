@@ -11,11 +11,13 @@ from typing import Annotated
 import uvicorn
 import yaml
 from fastapi import FastAPI, HTTPException, Query, status
+
+# from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from pydantic import BaseModel
 
 from . import ssh_session_manager as SSHSessionManager
-from .device_manager import Device, JumpHost, devices, get_device_by_host, jump_ssh_boxes
+from .device_manager import Device, JumpHost, devices, get_device_by_host, jump_ssh_boxes, resolve_host_or_tag
 
 aos_host_file: str = "data/aos-ssh-host.json"
 allowed_aos_commands: list[str] = []
@@ -26,7 +28,7 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger("aos-ssh")
-app = FastAPI(debug=True)
+app = FastAPI(title="Alcatel-Lucent Enterprise AOS SSH Server", debug=True)
 
 
 def load_host(aos_file: str):
@@ -63,6 +65,13 @@ def read_root():
     return {"aos ssh api": "1.0.0"}
 
 
+@app.get(
+    "/health",
+)
+def health_check():
+    return {"status": "healthy"}
+
+
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -83,21 +92,21 @@ def set_device(device: Device):
 
 @app.delete("/management/devices/{host}")
 def delete_device(host: str):
-    """Delete a device entry by IP address."""
-    device = get_device_by_host(host)
+    """Delete a device entry by IP address or tag."""
+    device = resolve_host_or_tag(host)
     if device is None:
         raise HTTPException(status_code=404, detail="Device not found")
     devices.remove(device)
     data = [dataclasses.asdict(d) for d in devices]
     with open(aos_host_file, "w") as fd:
         json.dump(data, fd, indent=2)
-    return {"status": "success", "message": f"Device {host} deleted successfully."}
+    return {"status": "success", "message": f"Device {device.host} (requested: {host}) deleted successfully."}
 
 
 @app.get("/devices/{host}")
 def get_device(host: str) -> dict[str, str]:
-    """Get a device entry by host."""
-    device = get_device_by_host(host)
+    """Get a device entry by host or tag."""
+    device = resolve_host_or_tag(host)
     if device is None:
         raise HTTPException(status_code=404, detail="Device not found")
 
@@ -136,7 +145,7 @@ class CommandResponse(BaseModel):
 
 @app.post("/command")
 def execute_command(command: Command):
-    device = get_device_by_host(command.host)
+    device = resolve_host_or_tag(command.host)
     if device is None:
         raise HTTPException(status_code=404, detail="Device not found")
     if not check_command(command.command):
@@ -146,8 +155,14 @@ def execute_command(command: Command):
     session, error_msg = SSHSessionManager.get_session(device)
     if session is None:
         raise HTTPException(status_code=404, detail=f"Failed to create SSH session: {error_msg}")
-    stdin, stdout, stderr = SSHSessionManager.execute_command(command.host, command.command, device.jump_ssh_name)
-    logger.debug(f"Command executed: {command.command} on {command.host}\n[stdout]\n{stdout}\n[stderr]\n{stderr}")
+    # Use the actual device host for SSH connection, not the tag
+    jump_name = device.jump_ssh_name or ""  # Convert None to empty string
+    stdin, stdout, stderr = SSHSessionManager.execute_command(device.host, command.command, jump_name)
+    logger.debug(
+        f"Command executed: {command.command} on {device.host} (requested: {command.host})\n"
+        f"[stdout]\n{stdout}\n"
+        f"[stderr]\n{stderr}"
+    )
     return CommandResponse(stdout=stdout, stderr=stderr)
 
 
@@ -188,6 +203,14 @@ def main():
     logger.info(f"Loaded {len(jump_ssh_boxes)} jump ssh hosts")
     logger.info(f"Loaded {len(devices)} devices")
     SSHSessionManager.init_ssh_session_manager()
+    # origins = os.getenv("ALLOWED_ORIGINS", f"http://localhost:{args.port},http://127.0.0.1:{args.port}").split(",")
+    # app.add_middleware(
+    #    CORSMiddleware,
+    #    allow_origins=origins,
+    #    allow_credentials=True,
+    #    allow_methods=["*"],
+    #    allow_headers=["*"],
+    # )
     uvicorn.run(app, host="0.0.0.0", port=args.port, log_level=args.log_level)
 
 

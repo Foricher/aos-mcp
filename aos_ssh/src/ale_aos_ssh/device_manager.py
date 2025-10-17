@@ -73,3 +73,23 @@ jump_ssh_boxes: list[JumpHost] = []  # Global list to store jump boxes
 
 def get_device_by_host(host: str) -> Device | None:
     return next((d for d in devices if d.host == host), None)
+
+
+def get_device_by_tag(tag: str) -> Device | None:
+    """Get device by tag name."""
+    return next((d for d in devices if tag in d.tags), None)
+
+
+def resolve_host_or_tag(host_or_tag: str) -> Device | None:
+    """Resolve a host string which could be an IP/hostname or a tag to a Device object."""
+    # First try to find by exact host match
+    device = get_device_by_host(host_or_tag)
+    if device:
+        return device
+
+    # If not found, try to find by tag
+    device = get_device_by_tag(host_or_tag)
+    if device:
+        return device
+
+    return None

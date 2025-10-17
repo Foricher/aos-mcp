@@ -16,5 +16,6 @@ FROM base AS runtime
 COPY --from=builder /app /app
 ENV PATH="/app/.venv/bin:$PATH"
 WORKDIR /app
+# ENV ALE_AOS_SSH_PORT="8110"
 EXPOSE 8110
 CMD ["python", "-m", "ale_aos_ssh", "--port", "8110"]

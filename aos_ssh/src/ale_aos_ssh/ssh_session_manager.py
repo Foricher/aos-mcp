@@ -122,7 +122,12 @@ def get_session(device: Device):
         )
     else:
         client, error_msg = get_or_create_session(
-            host=device.host, username=device.user, password=device.password, port=device.port
+            host=device.host,
+            username=device.user,
+            password=device.password,
+            port=device.port,
+            is_jump_box=False,
+            jump_name="",
         )
     return client, error_msg
 
@@ -217,17 +222,25 @@ def get_or_create_session(
                 session_info["jump_name"] = jump_name
                 session_info["jump_client"] = jump_client
                 session_info["last_activity_time"] = datetime.datetime.now()
+                logger.info(f"Session stored with key: {(host, is_jump_box, jump_name)}")
             return client, error_msg
 
 
-def execute_command(host, command, jump_name=None):
+def execute_command(host, command, jump_name=""):
     """
     Executes a command on the specified SSH session.
     Assumes the session is already managed by get_or_create_session.
     Updates the last_activity_time for the session.
     """
+    # Debug: Print all active sessions
+    logger.info(f"execute_command called with host={host}, jump_name={jump_name}")
+    logger.info(f"Active sessions keys: {list(active_ssh_sessions.keys())}")
 
-    if (host, False, jump_name) not in active_ssh_sessions:
+    session_key = (host, False, jump_name)
+    logger.info(f"Looking for session key: {session_key}")
+
+    if session_key not in active_ssh_sessions:
+        logger.error(f"No active session for {host}. Please establish a connection first.")
         print(f"No active session for {host}. Please establish a connection first.")
         return None, None, None
 

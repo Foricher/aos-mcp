@@ -96,13 +96,15 @@ def list_devices() -> str:
         return f"Error executing list_devices: {r.status_code} - {r.text}"
 
 
-# @mcp.tool()
+@mcp.tool()
 async def execute_command(
-    host: str = Field(description="The host of the aos switch, host is the ip address or hostname of the switch"),
+    host: str = Field(
+        description="The host of the aos switch, can be an IP address, hostname, or tag (e.g., 'sw14', 'sw15')"
+    ),
     command: str = Field(description="The command to execute on the aos switch"),
     ctx: Context = None,
 ) -> str:
-    """execute a command on an Alcatel AOS switch via its ip address.
+    """execute a command on an Alcatel AOS switch via its ip address, hostname, or tag.
     Command list :
             - `show system`: Displays basic system information for the switch. Information includes a switch name,
             user-defined system description, system version
@@ -133,18 +135,33 @@ async def execute_command(
             , in format chassis/slot/port.
 
     args:
-            host (str): The host of the aos switch, host is the ip address or hostname of the switch
+            host (str): The host of the aos switch, can be an IP address, hostname, or tag (e.g., 'sw14', 'sw15')
             command (str): The command to execute on the aos switch
     returns:
             str: The unstructured content of the command execution or an error message
     """
     logger.info(f"Executing command: {command} on device with host: {host}")
-    r = requests.post(f"{args.aos_ssh_url}/command", json={"host": host, "command": command})
-    logger.debug(r.json())
-    if r.status_code == 200:
-        return r.json().get("stdout", "No output returned")
-    else:
-        return f"Error executing command: {r.status_code} - {r.text}"
+    try:
+        r = requests.post(f"{args.aos_ssh_url}/command", json={"host": host, "command": command})
+        r.raise_for_status()
+        data = r.json()
+        logger.debug(data)
+        stdout = data.get("stdout", "")
+        stderr = data.get("stderr", "")
+
+        # Ensure we always return a string, never None
+        if stdout is None and stderr is None:
+            return "Command executed successfully but returned no output"
+        elif stdout is None:
+            return f"stderr: {stderr}" if stderr else "Command executed successfully but returned no output"
+        elif stderr:
+            return f"stdout: {stdout}\nstderr: {stderr}"
+        else:
+            return stdout
+    except requests.RequestException as e:
+        return f"Error executing command: {e}"
+    except ValueError:
+        return "Error: invalid JSON response from AOS SSH service"
 
 
 @mcp.prompt()

@@ -16,31 +16,36 @@
         "host": "172.25.190.13",
         "user": "admin",
         "password": "switch",
-        "tags": ["sw13","brest"]
+        "tags": ["sw13","brest"],
+        "jump_ssh_name": "jump_host1"
       },
       {
         "host": "172.25.190.14",
         "user": "admin",
         "password": "switch",
-        "tags": ["sw14","brest"]
+        "tags": ["sw14","brest"],
+        "jump_ssh_name": "jump_host1"
       },
       {
         "host": "172.25.190.15",
         "user": "admin",
         "password": "switch",
-        "tags": ["sw15","brest"]
+        "tags": ["sw15","brest"],
+        "jump_ssh_name": "jump_host1"
       },
       {
         "host": "172.25.190.16",
         "user": "admin",
         "password": "switch",
-        "tags": ["sw16","brest"]
+        "tags": ["sw16","brest"],
+        "jump_ssh_name": "jump_host1"
       },
       {
         "host": "172.25.190.17",
         "user": "admin",
         "password": "switch",
-        "tags": ["sw17","brest"]  
+        "tags": ["sw17","brest"], 
+        "jump_ssh_name": "jump_host1"
       },
       {
         "host": "172.25.190.18",
